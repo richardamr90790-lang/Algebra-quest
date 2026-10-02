@@ -119,3 +119,14 @@ test("placement result and dismissal merge, and a later reset clears them", () =
   const reset = mergeState(a, s({ updatedAt: 400, resetAt: 400, placement: null }));
   assert.equal(reset.placement, null, "a later full reset clears it");
 });
+
+test("daily challenge merges: latest day wins, count is the larger, a later reset clears it", () => {
+  const a = s({ updatedAt: 100, daily: { day: "2026-10-01", correct: 3, total: 5 }, dailyCount: 4 });
+  const b = s({ updatedAt: 200, daily: { day: "2026-10-02", correct: 5, total: 5 }, dailyCount: 3 });
+  const m = mergeState(a, b);
+  assert.equal(m.daily.day, "2026-10-02");
+  assert.equal(m.dailyCount, 4);
+  const reset = mergeState(a, s({ updatedAt: 300, resetAt: 300 }));
+  assert.equal(reset.daily, null);
+  assert.equal(reset.dailyCount, 0);
+});

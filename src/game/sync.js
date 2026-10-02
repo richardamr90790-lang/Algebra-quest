@@ -54,6 +54,10 @@ export function mergeState(a, b) {
   const placement = counting.map((s) => s.placement).filter(Boolean).sort((x, y) => ms(y.at) - ms(x.at))[0] || null;
   const placementDismissed = counting.some((s) => s.placementDismissed);
 
+  // Daily challenge: the most recent completed day, and the largest completed-days count.
+  const daily = counting.map((s) => s.daily).filter(Boolean).sort((x, y) => (x.day < y.day ? 1 : x.day > y.day ? -1 : 0))[0] || null;
+  const dailyCount = Math.max(0, ...counting.map((s) => ms(s.dailyCount)));
+
   // Re-rolled practice sets: take the newer side's, falling back to the older's.
   const customProblems = { ...asObj(older.customProblems), ...asObj(newer.customProblems) };
   for (const id of Object.keys(customProblems)) {
@@ -70,6 +74,8 @@ export function mergeState(a, b) {
     customProblems,
     placement,
     placementDismissed,
+    daily,
+    dailyCount,
     review: mergeReview(asObj(a.review), asObj(b.review), { resetAt, topicResets }),
     resetAt,
     topicResets,

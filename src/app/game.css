@@ -986,3 +986,11 @@ body{position:relative}
 .pl-score{margin-left:6px;color:var(--fg-muted);font-size:12px}
 .pl-row.lvl-solid .pl-level{color:var(--good)}
 .pl-row.lvl-needs .pl-level{color:var(--accent-2)}
+
+/* ---------- daily challenge ---------- */
+.daily-card{
+  display:flex;align-items:center;gap:12px;justify-content:space-between;margin:10px 0 4px;
+  background:var(--surface);border:1px solid color-mix(in srgb, var(--accent) 45%, var(--border));border-radius:16px;padding:12px 14px;box-shadow:var(--shadow);
+}
+.daily-card.done{border-color:var(--border)}
+.daily-bonus{margin:6px 0 2px;font-weight:800;color:var(--accent-2)}

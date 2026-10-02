@@ -8,6 +8,7 @@ import { serializeBackup, parseBackup, backupFileName } from "./backup.js";
 import { recordResult, dueTopics, nextDueDay, passed, localDay, daysBetween } from "./review.js";
 import { buildPlan, scoreRegions, recommendStart, REGION_ORDER } from "./placement.js";
 import { shouldInsertWarmup, nextMissStreak, isPerfectRun } from "./adaptive.js";
+import { dailyProblems, dailyDoneToday, DAILY_XP_PER_CORRECT, DAILY_BONUS_XP } from "./daily.js";
 
 function checkAnswerFor(p){ return p.check || p.a; }
 
@@ -52,8 +53,9 @@ let storageKey = LEGACY_STORAGE_KEY;
 let onSaveHook = null;
 function defaultState(){
   return {xp:0, bestStreak:0, mastered:{}, customProblems:{}, theme:"clean", name:"", masteredDates:{}, avatar:"root",
-    updatedAt:0, resetAt:0, topicResets:{}, review:{}, placement:null, placementDismissed:false};
+    updatedAt:0, resetAt:0, topicResets:{}, review:{}, placement:null, placementDismissed:false, daily:null, dailyCount:0};
   // review[topicId] = {box, due, last, at} spaced-review schedule (see review.js).
+  // daily = {day, correct, total} for the last completed Daily Challenge; dailyCount = challenges completed in all.
   // placement = {at, regions:{cat:{correct,total,level}}, start:topicId|null} from the check-in; placementDismissed = card hidden.
   // updatedAt = ms of the last save; resetAt / topicResets[topicId] = ms of a full / per-topic reset. Used by sync
   // so a reset on one device isn't undone by merging with another device's older progress.
@@ -374,6 +376,44 @@ function reviewCardHTML(){
   return "";
 }
 
+// ---- Daily Challenge: the same 5 questions all day (see daily.js), bonus XP once per day ----
+function startDaily(){
+  const today = localDay();
+  if(dailyDoneToday(state.daily, today)) return;
+  const pool = dailyProblems(today, TOPICS, REGION_ORDER, (topicId)=>{
+    const t = TOPICS.find(x=>x.id===topicId);
+    return (GENERATORS[topicId] ? GENERATORS[topicId](t) : null) || getTopicProblems(t);
+  });
+  session = {
+    mode:"daily", xpPerCorrect:DAILY_XP_PER_CORRECT, day:today,
+    title:"Daily Challenge", cat:null, learnPhase:null, guidedCount:0, practiceCount:pool.length,
+    problems: pool.map((p,idx)=>({...p, idx, kind:"practice"})), pos:0, revealed:false, autoResult:null, attempts:0, retryFlash:false,
+    results:[], correctCount:0, why:null,
+    peekOpen:false, peekPos:0, termsOpen:false, draftAnswer:"", draftBlanks:null,
+  };
+  view = "quest";
+  render();
+}
+function finishDaily(){
+  state.daily = {day:session.day, correct:session.correctCount, total:session.problems.length};
+  state.dailyCount = (state.dailyCount||0) + 1;
+  state.xp += DAILY_BONUS_XP;
+  session.xpEarned = (session.xpEarned||0) + DAILY_BONUS_XP;
+  session.dailyBonus = DAILY_BONUS_XP;
+  saveState();
+}
+function dailyCardHTML(){
+  const today = localDay();
+  if(dailyDoneToday(state.daily, today)){
+    const d = state.daily;
+    return `<div class="daily-card done"><div class="review-text"><div class="review-title">✅ Daily Challenge done</div>
+      <div class="review-sub">${d.correct}/${d.total} right today · ${state.dailyCount} completed in all · a new one tomorrow</div></div></div>`;
+  }
+  return `<div class="daily-card"><div class="review-text"><div class="review-title">⭐ Daily Challenge</div>
+    <div class="review-sub">5 mixed questions, the same for everyone today · +${DAILY_BONUS_XP} bonus XP</div></div>
+    <button type="button" class="review-go" id="dailyBtn">Play</button></div>`;
+}
+
 // ---- Placement check-in ----
 function startPlacement(){
   const plan = buildPlan(TOPICS, SUGGESTED_ORDER);
@@ -645,7 +685,7 @@ function mark(correct){
     session.correctCount++;
     streak++;
     if(streak>state.bestStreak) state.bestStreak = streak;
-    state.xp += (session.mode==="boss" || session.mode==="review") ? (session.xpPerCorrect||14) : (p.scaffold ? 4 : p.kind==="guided" ? 6 : 10);
+    state.xp += (session.mode==="boss" || session.mode==="review" || session.mode==="daily") ? (session.xpPerCorrect||14) : (p.scaffold ? 4 : p.kind==="guided" ? 6 : 10);
     if(session.mode==="topic" && p.kind==="practice" && !p.scaffold) setMastered(session.topicId, p.idx, session.practiceCount);
     if(streak>0 && streak%5===0) burstConfetti();
   }else{
@@ -670,6 +710,7 @@ function mark(correct){
     }else{
       if(session.mode==="topic" || session.mode==="review") recordReviewResults();
       if(session.mode==="placement") finishPlacement();
+      if(session.mode==="daily") finishDaily();
       view="summary"; render();
       if(session.correctCount===session.problems.length) burstConfetti();
     }
@@ -873,6 +914,7 @@ function renderHome(){
     ${themePanelOpen ? themePanelHTML() : ""}
   </div>
   ${reviewCardHTML()}
+  ${dailyCardHTML()}
   ${placementCardHTML()}`;
 
   // Track which topics just became fully mastered this render, so only those
@@ -1011,6 +1053,8 @@ function renderHome(){
   if(placementCardBtn) placementCardBtn.addEventListener("click", startPlacement);
   const placementDismissBtn = document.getElementById("placementDismissBtn");
   if(placementDismissBtn) placementDismissBtn.addEventListener("click", ()=>{ state.placementDismissed = true; saveState(); render(); });
+  const dailyBtn = document.getElementById("dailyBtn");
+  if(dailyBtn) dailyBtn.addEventListener("click", startDaily);
   const reviewBtn = document.getElementById("reviewBtn");
   if(reviewBtn) reviewBtn.addEventListener("click", startReview);
   document.getElementById("dictionaryBtn").addEventListener("click", ()=>{
@@ -1215,7 +1259,7 @@ function renderDictionary(){
 
 function renderQuest(){
   const p = session.problems[session.pos];
-  const crossTopic = session.mode==="boss" || session.mode==="review" || session.mode==="placement";
+  const crossTopic = session.mode==="boss" || session.mode==="review" || session.mode==="placement" || session.mode==="daily";
   const catColor = crossTopic ? CAT[p.cat].color : CAT[session.cat].color;
   const catIcon = crossTopic ? CAT[p.cat].icon : CAT[session.cat].icon;
   let catLabel;
@@ -1880,6 +1924,7 @@ function renderSummary(){
     <div style="font-size:46px">${pct===100 ? "🏆" : "✨"}</div>
     <div class="epic-sub">${sub}</div>
     <div class="big epic">${msg}</div>
+    ${session.dailyBonus ? `<div class="daily-bonus">⭐ Daily Challenge bonus: +${session.dailyBonus} XP</div>` : ""}
     <div class="stats-row">
       <div><div class="n">${correct}/${total}</div><div class="l">Correct</div></div>
       <div><div class="n">+${session.xpEarned!==undefined ? session.xpEarned : correct*10+(total-correct)*2}</div><div class="l">XP earned</div></div>
