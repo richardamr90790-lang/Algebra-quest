@@ -1133,3 +1133,72 @@ html[data-frame="galaxy"] .brand .mark,.frame-galaxy{box-shadow:0 0 0 3px #7c5cf
 @media (pointer:coarse){ .reset-row button{min-height:44px;padding:8px 12px} }
 /* headings that receive focus on a screen change shouldn't show a ring (they are not controls) */
 #app h1:focus,#app h2:focus{outline:none}
+
+/* ===================== PREMIUM THEMES (bought in the shop) ===================== */
+:root[data-theme="glam"]{
+  /* Glam Paradise: hot magenta and gold on a deep plum night, with a pool-side glow */
+  --bg:#2a0b2f; --surface:#3a1140; --surface-2:#4b1952; --fg:#fff1fa; --fg-muted:#f0b9da; --border:#82307c;
+  --accent:#ff3fa4; --accent-2:#f5c15a; --accent-3:#2fd8d0;
+  --good:#7cf0b4; --bad:#ff8fa8; --good-tint:rgba(124,240,180,.16); --bad-tint:rgba(255,143,168,.16);
+  --cat-foundations:#8ec5ff; --cat-equations:#d6a6ff; --cat-expressions:#5fe6d4; --cat-factoring:#ffc96b;
+  --cat-quadratics:#ff8fa8; --cat-applications:#9be58f; --cat-graphing:#ff9be0;
+  --ex-purple:#d0a8ff; --ex-blue:#8ec5ff; --ex-red:#ff9aa8; --ex-green:#7cf0b4; --ex-step-bg:#f5c15a; --ex-step-fg:#2b1d00;
+  --shadow:0 10px 30px -12px rgb(0 0 0 / .6); --shadow-hover:0 18px 36px -10px rgb(0 0 0 / .7);
+  color-scheme: dark;
+}
+:root[data-theme="tide"]{
+  /* Mermaid Tide: deep teal water, turquoise glow, a touch of sunlit gold */
+  --bg:#06222e; --surface:#0b3342; --surface-2:#104355; --fg:#e8fbff; --fg-muted:#a0d6e0; --border:#1d6377;
+  --accent:#2fe0d0; --accent-2:#ffd36e; --accent-3:#6aa8ff;
+  --good:#6ff2b0; --bad:#ff9a8a; --good-tint:rgba(111,242,176,.16); --bad-tint:rgba(255,154,138,.16);
+  --cat-foundations:#7cc4ff; --cat-equations:#b9a2ff; --cat-expressions:#4fe8d6; --cat-factoring:#ffd36e;
+  --cat-quadratics:#ff9a8a; --cat-applications:#8fe8a0; --cat-graphing:#f39be0;
+  --ex-purple:#c3aeff; --ex-blue:#7cc4ff; --ex-red:#ffa395; --ex-green:#6ff2b0; --ex-step-bg:#ffd36e; --ex-step-fg:#2a2000;
+  --shadow:0 10px 30px -12px rgb(0 0 0 / .6); --shadow-hover:0 18px 36px -10px rgb(0 0 0 / .7);
+  color-scheme: dark;
+}
+:root[data-theme="holo"]{
+  /* Holo Pop: pearly silver, violet and pink on a light iridescent base */
+  --bg:#e8ecff; --surface:#ffffff; --surface-2:#f0eaff; --fg:#1d1a3a; --fg-muted:#58537f; --border:#cdc6f0;
+  --accent:#5b3df5; --accent-2:#c2307e; --accent-3:#0f8fb3;
+  --good:#13804f; --bad:#c0294f; --good-tint:rgba(19,128,79,.14); --bad-tint:rgba(192,41,79,.14);
+  --cat-foundations:#3b55d9; --cat-equations:#7a3fc4; --cat-expressions:#0f8fa6; --cat-factoring:#b3560a;
+  --cat-quadratics:#c0294f; --cat-applications:#1b7f45; --cat-graphing:#b62a8f;
+  --ex-purple:#7a3fc4; --ex-blue:#3b55d9; --ex-red:#c0294f; --ex-green:#13804f; --ex-step-bg:#ffe27a; --ex-step-fg:#3a2c00;
+  --shadow:0 10px 30px -12px rgb(60 40 140 / .25); --shadow-hover:0 16px 34px -12px rgb(60 40 140 / .35);
+  color-scheme: light;
+}
+:root[data-theme="glam"] body{
+  background-color:#2a0b2f;
+  background-image:linear-gradient(180deg,rgba(28,5,34,.34),rgba(28,5,34,.48)),url("/themes/glam.webp");
+  background-position:center center;background-size:cover;background-repeat:no-repeat;background-attachment:fixed;
+}
+:root[data-theme="tide"] body{
+  background-color:#06222e;
+  background-image:linear-gradient(180deg,rgba(3,22,32,.22),rgba(3,22,32,.42)),url("/themes/tide.webp");
+  background-position:center center;background-size:cover;background-repeat:no-repeat;background-attachment:fixed;
+}
+:root[data-theme="holo"] body{
+  background-color:#e8ecff;
+  background-image:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.20)),url("/themes/holo.webp");
+  background-position:center center;background-size:cover;background-repeat:no-repeat;background-attachment:fixed;
+}
+:root[data-theme="glam"] .topic-card,:root[data-theme="glam"] .card,:root[data-theme="glam"] .summary,:root[data-theme="glam"] .xpbar-wrap,:root[data-theme="glam"] .stat-chip,:root[data-theme="glam"] .boss-mode-btn,:root[data-theme="glam"] .theme-toggle,:root[data-theme="glam"] .theme-panel,
+:root[data-theme="tide"] .topic-card,:root[data-theme="tide"] .card,:root[data-theme="tide"] .summary,:root[data-theme="tide"] .xpbar-wrap,:root[data-theme="tide"] .stat-chip,:root[data-theme="tide"] .boss-mode-btn,:root[data-theme="tide"] .theme-toggle,:root[data-theme="tide"] .theme-panel,
+:root[data-theme="holo"] .topic-card,:root[data-theme="holo"] .card,:root[data-theme="holo"] .summary,:root[data-theme="holo"] .xpbar-wrap,:root[data-theme="holo"] .stat-chip,:root[data-theme="holo"] .boss-mode-btn,:root[data-theme="holo"] .theme-toggle,:root[data-theme="holo"] .theme-panel{
+  background-color:color-mix(in srgb,var(--surface) 88%,transparent);
+  backdrop-filter:blur(7px);
+}
+/* shop previews of the premium themes */
+.theme-prev{display:block;width:100%;max-width:150px;aspect-ratio:16/9;border-radius:12px;border:1px solid var(--border);
+  background-size:cover;background-position:center;box-shadow:var(--shadow)}
+.theme-prev-glam{background-image:url("/themes/glam-thumb.webp")}
+.theme-prev-tide{background-image:url("/themes/tide-thumb.webp")}
+.theme-prev-holo{background-image:url("/themes/holo-thumb.webp")}
+
+/* contrast-safe text colours for the premium themes (computed the same way as above) */
+:root[data-theme="glam"]{ --on-accent:#0a0a0a; --on-accent-2:#0a0a0a; --on-good:#0a0a0a; --accent-text:#ff5ab1; --accent-2-text:#f5c15a; --good-text:#7cf0b4; --bad-text:#ff8fa8; --on-cat:#0a0a0a; --cat-deepen:0%; }
+:root[data-theme="tide"]{ --on-accent:#0a0a0a; --on-accent-2:#0a0a0a; --on-good:#0a0a0a; --accent-text:#2fe0d0; --accent-2-text:#ffd36e; --good-text:#6ff2b0; --bad-text:#ff9a8a; --on-cat:#0a0a0a; --cat-deepen:0%; }
+:root[data-theme="holo"]{ --on-accent:#ffffff; --on-accent-2:#ffffff; --on-good:#ffffff; --accent-text:#5b3df5; --accent-2-text:#ba2e79; --good-text:#117649; --bad-text:#c0294f; --on-cat:#ffffff; --cat-deepen:11%; }
+
+.shop-icon-theme{min-height:0;width:100%;justify-content:center}

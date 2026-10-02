@@ -107,10 +107,16 @@ const THEMES = [
   {id:"forest",   name:"Forest",       a:"#1e2b22", b:"#5fd9a0", c:"#e8d28a"},
   {id:"sunset",   name:"Sunset",       a:"#36254c", b:"#ff6f61", c:"#ff9a4d"},
   {id:"pink",     name:"Pink Stardust",a:"#fff3fa", b:"#ff2d87", c:"#c2186b"},
+  // Premium themes: unlocked in the shop (ids match the shop items in shop.js)
+  {id:"glam",     name:"Glam Paradise",a:"#3a1140", b:"#ff3fa4", c:"#f5c15a", premium:true},
+  {id:"tide",     name:"Mermaid Tide", a:"#0b3342", b:"#2fe0d0", c:"#6aa8ff", premium:true},
+  {id:"holo",     name:"Holo Pop",     a:"#ffffff", b:"#5b3df5", c:"#c2307e", premium:true},
 ];
+// The themes this learner may use: the free ones, plus any premium theme they own.
+function availableThemes(){ return THEMES.filter(t=>!t.premium || isOwned(state && state.owned, t.id)); }
 function themeName(id){ const t = THEMES.find(x=>x.id===id); return t ? t.name : "Clean"; }
 function applyTheme(id){
-  const valid = THEMES.some(t=>t.id===id) ? id : "clean";
+  const valid = availableThemes().some(t=>t.id===id) ? id : "clean";
   document.documentElement.setAttribute("data-theme", valid);
   applyFrame();
 }
@@ -149,6 +155,7 @@ const AVATARS = [
   {id:"raccoon",       icon:"🦝", label:"Raccoon"},
 ];
 const FREE_AVATAR_IDS = AVATARS.map(a=>a.id);
+const FREE_THEME_IDS = () => THEMES.filter(t=>!t.premium).map(t=>t.id);
 function allowedAvatars(){
   const owned = SHOP_ITEMS.filter(i=>i.kind==="avatar" && isOwned(state.owned, i.id)).map(i=>({id:i.id, icon:i.icon, label:i.label}));
   return AVATARS.concat(owned);
@@ -159,7 +166,7 @@ let avatarPanelOpen = false;
 let nameSaveTimer = null;
 let bossPanelOpen = false;
 function setTheme(id){
-  if(!THEMES.some(t=>t.id===id)) return;
+  if(!availableThemes().some(t=>t.id===id)) return;
   state.theme = id;
   saveState();
   applyTheme(id);
@@ -597,10 +604,12 @@ let shopMsg = "";
 function openShop(){ view = "shop"; pendingBuy = null; shopMsg = ""; render(); }
 function shopItemHTML(item){
   const owned = isOwned(state.owned, item.id);
-  const equipped = item.kind==="avatar" ? state.avatar===item.id : state.frame===item.id;
+  const equipped = item.kind==="avatar" ? state.avatar===item.id : item.kind==="theme" ? state.theme===item.id : state.frame===item.id;
   const visual = item.kind==="avatar"
     ? `<span class="shop-icon">${item.icon}</span>`
-    : `<span class="shop-icon"><span class="frame-prev frame-${item.id}">√</span></span>`;
+    : item.kind==="theme"
+      ? `<span class="shop-icon shop-icon-theme"><span class="theme-prev theme-prev-${item.id}" role="img" aria-label="Preview of the ${item.label} theme"></span></span>`
+      : `<span class="shop-icon"><span class="frame-prev frame-${item.id}">√</span></span>`;
   let action;
   if(owned){
     action = equipped
@@ -628,6 +637,7 @@ function renderShop(){
   </div>
   <div class="shop-balance">You have <strong id="shopBalance">${bal}</strong> XP to spend</div>
   ${shopMsg ? `<div class="shop-msg" role="status">${shopMsg}</div>` : ""}
+  ${section("theme","Themes")}
   ${section("avatar","Characters")}
   ${section("frame","Frames")}
   <div class="btn-row"><button class="btn btn-ghost" id="homeBtn">Back to map</button></div>
@@ -641,8 +651,8 @@ function renderShop(){
     if(res.ok){
       state.owned = res.owned;
       const item = itemById(id);
-      if(item.kind==="avatar") state.avatar = id; else state.frame = id;   // equip what you just bought
-      saveState(); applyFrame();
+      if(item.kind==="avatar") state.avatar = id; else if(item.kind==="theme") state.theme = id; else state.frame = id;   // equip what you just bought
+      saveState(); applyTheme(state.theme);
       checkAchievements();
       shopMsg = `${item.label} is yours and equipped!`;
       playSound("buy");
@@ -654,15 +664,15 @@ function renderShop(){
   }));
   app.querySelectorAll("[data-equip]").forEach(btn=>btn.addEventListener("click", ()=>{
     const item = itemById(btn.dataset.equip);
-    if(!item || !canUse(state.owned, item.kind, item.id, FREE_AVATAR_IDS)) return;
-    if(item.kind==="avatar") state.avatar = item.id; else state.frame = item.id;
-    saveState(); applyFrame(); shopMsg = ""; render();
+    if(!item || !canUse(state.owned, item.kind, item.id, item.kind==="theme" ? FREE_THEME_IDS() : FREE_AVATAR_IDS)) return;
+    if(item.kind==="avatar") state.avatar = item.id; else if(item.kind==="theme") state.theme = item.id; else state.frame = item.id;
+    saveState(); applyTheme(state.theme); shopMsg = ""; render();
   }));
   app.querySelectorAll("[data-unequip]").forEach(btn=>btn.addEventListener("click", ()=>{
     const item = itemById(btn.dataset.unequip);
     if(!item) return;
-    if(item.kind==="frame") state.frame = ""; else state.avatar = "root";
-    saveState(); applyFrame(); shopMsg = ""; render();
+    if(item.kind==="frame") state.frame = ""; else if(item.kind==="theme") state.theme = "clean"; else state.avatar = "root";
+    saveState(); applyTheme(state.theme); shopMsg = ""; render();
   }));
 }
 
@@ -1146,7 +1156,7 @@ function statsBarHTML(){
 }
 
 function themePanelHTML(){
-  const swatches = THEMES.map(t=>{
+  const swatches = availableThemes().map(t=>{
     const pressed = state.theme===t.id;
     return `<button type="button" class="theme-swatch" data-theme-pick="${t.id}" role="option" aria-selected="${pressed}">
       <span class="swatch-dot" style="--sw-a:${t.a};--sw-b:${t.b};--sw-c:${t.c}" aria-hidden="true"></span>
@@ -1181,7 +1191,7 @@ function bossPanelHTML(){
 }
 function renderHome(){
   const regions = ["foundations","expressions","equations","graphing","factoring","rational","quadratics","applications"];
-  const curTheme = THEMES.find(t=>t.id===state.theme) || THEMES[0];
+  const curTheme = availableThemes().find(t=>t.id===state.theme) || THEMES[0];
   let html = `
   <div class="hub-card">
     <div class="topbar">

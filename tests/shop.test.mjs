@@ -5,7 +5,7 @@ import { SHOP_ITEMS, spentOn, balance, buy, canUse, mergeOwned, isOwned } from "
 test("catalog: unique ids, positive prices, both kinds", () => {
   assert.equal(new Set(SHOP_ITEMS.map((i) => i.id)).size, SHOP_ITEMS.length);
   assert.ok(SHOP_ITEMS.every((i) => i.price > 0 && i.label && i.icon));
-  assert.ok(SHOP_ITEMS.some((i) => i.kind === "avatar") && SHOP_ITEMS.some((i) => i.kind === "frame"));
+  assert.ok(SHOP_ITEMS.some((i) => i.kind === "avatar") && SHOP_ITEMS.some((i) => i.kind === "frame") && SHOP_ITEMS.some((i) => i.kind === "theme"));
 });
 
 test("balance is lifetime XP minus what you own, never negative", () => {
@@ -41,4 +41,23 @@ test("owned lists from two devices merge by union without duplicates", () => {
   assert.deepEqual(mergeOwned(["rocket", "gold"], ["gold", "wolf"]).sort(), ["gold", "rocket", "wolf"]);
   assert.deepEqual(mergeOwned(undefined, ["wolf"]), ["wolf"]);
   assert.equal(isOwned(mergeOwned(["x"], []), "x"), false, "unknown ids are dropped");
+});
+
+test("premium themes: three of them, the priciest items, free themes stay usable", () => {
+  const themes = SHOP_ITEMS.filter((i) => i.kind === "theme");
+  assert.deepEqual(themes.map((i) => i.id).sort(), ["glam", "holo", "tide"]);
+  assert.ok(themes.every((i) => i.price >= Math.max(...SHOP_ITEMS.filter((x) => x.kind !== "theme").map((x) => x.price))), "themes cost at least as much as anything else");
+  const free = ["clean", "midnight", "neon", "forest", "sunset", "pink"];
+  assert.equal(canUse([], "theme", "forest", free), true);
+  assert.equal(canUse([], "theme", "glam", free), false);
+  assert.equal(canUse(["glam"], "theme", "glam", free), true);
+  assert.equal(buy(500, [], "glam").reason, "poor");
+  assert.equal(buy(800, [], "glam").ok, true);
+  assert.equal(balance(1000, ["glam"]), 200);
+});
+
+test("no item id is used twice across kinds, and none clash with the free theme ids", () => {
+  const ids = SHOP_ITEMS.map((i) => i.id);
+  assert.equal(new Set(ids).size, ids.length);
+  for (const free of ["clean", "midnight", "neon", "forest", "sunset", "pink"]) assert.ok(!ids.includes(free), free);
 });

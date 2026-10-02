@@ -1,10 +1,14 @@
-// Cosmetics shop: premium characters and avatar frames bought with XP. Pure logic, no DOM.
+// Cosmetics shop: premium themes, characters and avatar frames bought with XP. Pure logic, no DOM.
 //
 // Levels come from lifetime XP (state.xp), which spending never reduces. What a learner can spend is
 // lifetime XP minus the price of everything they own, so there is no separate "spent" number to get out
 // of step between devices: the owned lists simply merge by union.
 
 export const SHOP_ITEMS = [
+  // Premium themes (appear in the theme picker once owned)
+  { id: "glam", kind: "theme", icon: "💖", label: "Glam Paradise", price: 800 },
+  { id: "tide", kind: "theme", icon: "🧜", label: "Mermaid Tide",  price: 800 },
+  { id: "holo", kind: "theme", icon: "💿", label: "Holo Pop",      price: 900 },
   // Characters (shown in the avatar picker once owned)
   { id: "rocket",    kind: "avatar", icon: "🚀",   label: "Rocket",     price: 150 },
   { id: "trex",      kind: "avatar", icon: "🦖",   label: "T-Rex",      price: 150 },
@@ -47,7 +51,7 @@ export function buy(xp, owned, id) {
   return { ok: true, owned: [...ownedList(owned), id] };
 }
 
-// May this avatar / frame be used? Free avatars always can; premium ones must be owned.
+// May this avatar / frame / theme be used? Free avatars and themes always can; premium ones must be owned.
 export function canUse(owned, kind, id, freeIds = []) {
   if (kind === "frame") return id === "" || isOwned(owned, id);
   const item = itemById(id);

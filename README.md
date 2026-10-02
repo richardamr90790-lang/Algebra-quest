@@ -11,6 +11,7 @@ npm install
 npm run dev      # http://localhost:3000
 npm test         # engine, backup and sync unit tests
 npm run e2e:local  # browser test: offline, backup (build without Supabase keys on :3100)
+npm run e2e:themes # browser test: premium themes in the shop and the theme picker (build without Supabase keys on :3100)
 npm run e2e:a11y   # accessibility: axe on every screen x theme, layout, touch sizes, keyboard (build without Supabase keys on :3100)
 npm run e2e:a11y-accounts # accessibility of the sign-in / Who's playing screens (build with fake keys, see the file header)
 npm run e2e:report # browser test: progress report, activity log, print styles (build without Supabase keys on :3100)
@@ -50,7 +51,7 @@ npm run build && npm start
 | `src/game/review.js` | Spaced-review schedule (Leitner boxes), pure logic |
 | `src/game/backup.js` | Export / import of saved progress (no DOM) |
 | `src/game/app.js` | State, screens and rendering (still the original imperative UI, to be split up) |
-| `public/themes/` | Theme background art (extracted from the original single file) |
+| `public/themes/` | Theme background art: the six free themes (extracted from the original single file) and the three premium ones (`glam`, `tide`, `holo`, each with a small `-thumb` for the shop) |
 | `public/sw.js` | Service worker: pages network-first, static files cache-first |
 | `legacy/` | The original single-file HTML, kept for reference and parity checks |
 

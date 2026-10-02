@@ -7,7 +7,7 @@ import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
 const AXE = fs.readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
-const THEMES = ["clean", "midnight", "neon", "forest", "sunset", "pink"];
+const THEMES = ["clean", "midnight", "neon", "forest", "sunset", "pink", "glam", "tide", "holo"]; // the last three are premium shop themes
 const KEY = "algebraQuestState_v1";
 const ok = (c, m) => { console.log(c ? "PASS" : "FAIL", m); if (!c) process.exitCode = 1; };
 
@@ -19,7 +19,7 @@ await page.route(/fonts\.g/, (r) => r.abort());
 const NOW = Date.now();
 const rich = (theme) => ({
   theme, name: "Sam", xp: 450, bestStreak: 9, dailyCount: 3, placementDismissed: false,
-  mastered: { 19: [0, 1, 2, 3, 4, 5], 17: [0, 1] }, owned: ["rocket", "gold"], avatar: "rocket", frame: "gold",
+  mastered: { 19: [0, 1, 2, 3, 4, 5], 17: [0, 1] }, owned: ["rocket", "gold", theme], avatar: "rocket", frame: "gold",
   badges: { "first-answer": NOW, "master-1": NOW }, stats: { answers: 80, correct: 60, reviews: 2 },
   review: { 1: { box: 0, due: "2000-01-01", last: "x", at: 1, ok: false } },
   placement: { at: NOW, start: 20, regions: { foundations: { correct: 2, total: 2, level: "solid" }, expressions: { correct: 0, total: 2, level: "needs" } } },
