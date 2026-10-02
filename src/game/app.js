@@ -13,6 +13,8 @@ import { SHOP_ITEMS, itemById, balance, buy, canUse, isOwned } from "./shop.js";
 import { createSoundPlayer } from "./sound.js";
 import { ACHIEVEMENTS, EMPTY_STATS, newBadges, achievementById } from "./achievements.js";
 import { addActivity, buildReport, describeScore } from "./report.js";
+import { L, getLang, setLang, locale, deviceLang, rememberDeviceLang } from "./i18n.js";
+import { loadContentTable, applyContentLanguage, contentLoaded } from "./localize.js";
 
 function checkAnswerFor(p){ return p.check || p.a; }
 
@@ -36,6 +38,7 @@ function rerollTopicProblems(topicId){
   if(!Array.isArray(fresh) || !fresh.length) return;
   if(!state.customProblems) state.customProblems = {};
   state.customProblems[topicId] = fresh;
+  state.customLang = getLang();
   state.mastered[topicId] = [];
   if(state.masteredDates) delete state.masteredDates[topicId];
   markTopicReset(topicId);
@@ -68,7 +71,8 @@ let storageKey = LEGACY_STORAGE_KEY;
 let onSaveHook = null;
 function defaultState(){
   return {xp:0, bestStreak:0, mastered:{}, customProblems:{}, theme:"clean", name:"", masteredDates:{}, avatar:"root",
-    updatedAt:0, resetAt:0, topicResets:{}, review:{}, placement:null, placementDismissed:false, daily:null, dailyCount:0, owned:[], frame:"", badges:{}, stats:{...EMPTY_STATS}, activity:[]};
+    updatedAt:0, resetAt:0, topicResets:{}, review:{}, placement:null, placementDismissed:false, daily:null, dailyCount:0, owned:[], frame:"", badges:{}, stats:{...EMPTY_STATS}, activity:[], lang:"", customLang:""};
+  // lang = "en" | "es" chosen for this learner ("" = follow the device / browser language, see i18n.js)
   // review[topicId] = {box, due, last, at} spaced-review schedule (see review.js).
   // activity = recent finished sessions [{at, mode, title, correct, total}], newest first (see report.js).
   // badges = {achievementId: ms earned}; stats = counters behind the badges (see achievements.js).
@@ -101,20 +105,20 @@ let streak = 0;
    Each entry's a/b/c feed the little gradient swatch preview in the theme
    menu — purely decorative, not read anywhere else. */
 const THEMES = [
-  {id:"clean",    name:"Clean",        a:"#ffffff", b:"#eaf0fa", c:"#1f4e96"},
-  {id:"midnight", name:"Midnight",     a:"#141b2e", b:"#8b7cf6", c:"#e8b84b"},
-  {id:"neon",     name:"Neon Arcade",  a:"#15151e", b:"#22e0ff", c:"#c24bff"},
-  {id:"forest",   name:"Forest",       a:"#1e2b22", b:"#5fd9a0", c:"#e8d28a"},
-  {id:"sunset",   name:"Sunset",       a:"#36254c", b:"#ff6f61", c:"#ff9a4d"},
-  {id:"pink",     name:"Pink Stardust",a:"#fff3fa", b:"#ff2d87", c:"#c2186b"},
+  {id:"clean",    name:"Clean",        es:"Claro",         a:"#ffffff", b:"#eaf0fa", c:"#1f4e96"},
+  {id:"midnight", name:"Midnight",     es:"Medianoche",    a:"#141b2e", b:"#8b7cf6", c:"#e8b84b"},
+  {id:"neon",     name:"Neon Arcade",  es:"Arcade Neón",   a:"#15151e", b:"#22e0ff", c:"#c24bff"},
+  {id:"forest",   name:"Forest",       es:"Bosque",        a:"#1e2b22", b:"#5fd9a0", c:"#e8d28a"},
+  {id:"sunset",   name:"Sunset",       es:"Atardecer",     a:"#36254c", b:"#ff6f61", c:"#ff9a4d"},
+  {id:"pink",     name:"Pink Stardust",es:"Polvo de Estrellas Rosa", a:"#fff3fa", b:"#ff2d87", c:"#c2186b"},
   // Premium themes: unlocked in the shop (ids match the shop items in shop.js)
-  {id:"glam",     name:"Glam Paradise",a:"#3a1140", b:"#ff3fa4", c:"#f5c15a", premium:true},
-  {id:"tide",     name:"Mermaid Tide", a:"#0b3342", b:"#2fe0d0", c:"#6aa8ff", premium:true},
-  {id:"holo",     name:"Holo Pop",     a:"#ffffff", b:"#5b3df5", c:"#c2307e", premium:true},
+  {id:"glam",     name:"Glam Paradise",es:"Paraíso Glam",  a:"#3a1140", b:"#ff3fa4", c:"#f5c15a", premium:true},
+  {id:"tide",     name:"Mermaid Tide", es:"Marea de Sirena", a:"#0b3342", b:"#2fe0d0", c:"#6aa8ff", premium:true},
+  {id:"holo",     name:"Holo Pop",     es:"Holo Pop",      a:"#ffffff", b:"#5b3df5", c:"#c2307e", premium:true},
 ];
 // The themes this learner may use: the free ones, plus any premium theme they own.
 function availableThemes(){ return THEMES.filter(t=>!t.premium || isOwned(state && state.owned, t.id)); }
-function themeName(id){ const t = THEMES.find(x=>x.id===id); return t ? t.name : "Clean"; }
+function themeName(id){ const t = THEMES.find(x=>x.id===id) || THEMES[0]; return L(t.name, t.es); }
 function applyTheme(id){
   const valid = availableThemes().some(t=>t.id===id) ? id : "clean";
   document.documentElement.setAttribute("data-theme", valid);
@@ -133,31 +137,31 @@ applyTheme(state.theme);
    original √ mark, kept as the default so nobody's save file changes look
    without them choosing a new one. */
 const AVATARS = [
-  {id:"root",          icon:"√",  label:"Classic"},
-  {id:"fox",           icon:"🦊", label:"Fox"},
-  {id:"owl",           icon:"🦉", label:"Owl"},
-  {id:"dragon",        icon:"🐉", label:"Dragon"},
-  {id:"unicorn",       icon:"🦄", label:"Unicorn"},
-  {id:"robot",         icon:"🤖", label:"Robot"},
-  {id:"wizard",        icon:"🧙", label:"Wizard"},
-  {id:"ninja",         icon:"🥷", label:"Ninja"},
-  {id:"cat",           icon:"🐱", label:"Cat"},
-  {id:"lion",          icon:"🦁", label:"Lion"},
-  {id:"alien",         icon:"👾", label:"Alien"},
-  {id:"star",          icon:"🌟", label:"Star"},
-  {id:"clean-panda",   icon:"🐼", label:"Clean Panda"},
-  {id:"midnight-bat",  icon:"🦇", label:"Midnight Bat"},
-  {id:"neon-ghost",    icon:"👻", label:"Neon Ghost"},
-  {id:"forest-deer",   icon:"🦌", label:"Forest Deer"},
-  {id:"sunset-dolphin",icon:"🐬", label:"Sunset Dolphin"},
-  {id:"pink-fairy",    icon:"🧚", label:"Stardust Fairy"},
-  {id:"octopus",       icon:"🐙", label:"Octopus"},
-  {id:"raccoon",       icon:"🦝", label:"Raccoon"},
+  {id:"root",          icon:"√",  label:"Classic", es:"Clásico"},
+  {id:"fox",           icon:"🦊", label:"Fox", es:"Zorro"},
+  {id:"owl",           icon:"🦉", label:"Owl", es:"Búho"},
+  {id:"dragon",        icon:"🐉", label:"Dragon", es:"Dragón"},
+  {id:"unicorn",       icon:"🦄", label:"Unicorn", es:"Unicornio"},
+  {id:"robot",         icon:"🤖", label:"Robot", es:"Robot"},
+  {id:"wizard",        icon:"🧙", label:"Wizard", es:"Mago"},
+  {id:"ninja",         icon:"🥷", label:"Ninja", es:"Ninja"},
+  {id:"cat",           icon:"🐱", label:"Cat", es:"Gato"},
+  {id:"lion",          icon:"🦁", label:"Lion", es:"León"},
+  {id:"alien",         icon:"👾", label:"Alien", es:"Alienígena"},
+  {id:"star",          icon:"🌟", label:"Star", es:"Estrella"},
+  {id:"clean-panda",   icon:"🐼", label:"Clean Panda", es:"Panda Claro"},
+  {id:"midnight-bat",  icon:"🦇", label:"Midnight Bat", es:"Murciélago de Medianoche"},
+  {id:"neon-ghost",    icon:"👻", label:"Neon Ghost", es:"Fantasma Neón"},
+  {id:"forest-deer",   icon:"🦌", label:"Forest Deer", es:"Ciervo del Bosque"},
+  {id:"sunset-dolphin",icon:"🐬", label:"Sunset Dolphin", es:"Delfín del Atardecer"},
+  {id:"pink-fairy",    icon:"🧚", label:"Stardust Fairy", es:"Hada de Polvo de Estrellas"},
+  {id:"octopus",       icon:"🐙", label:"Octopus", es:"Pulpo"},
+  {id:"raccoon",       icon:"🦝", label:"Raccoon", es:"Mapache"},
 ];
 const FREE_AVATAR_IDS = AVATARS.map(a=>a.id);
 const FREE_THEME_IDS = () => THEMES.filter(t=>!t.premium).map(t=>t.id);
 function allowedAvatars(){
-  const owned = SHOP_ITEMS.filter(i=>i.kind==="avatar" && isOwned(state.owned, i.id)).map(i=>({id:i.id, icon:i.icon, label:i.label}));
+  const owned = SHOP_ITEMS.filter(i=>i.kind==="avatar" && isOwned(state.owned, i.id)).map(i=>({id:i.id, icon:i.icon, label:i.label, es:i.es}));
   return AVATARS.concat(owned);
 }
 function avatarIcon(id){ const a = allowedAvatars().find(x=>x.id===id); return a ? a.icon : "√"; }
@@ -248,7 +252,7 @@ function masteredDateLabel(topicId){
   if(!iso) return null;
   const d = new Date(iso);
   if(isNaN(d.getTime())) return null;
-  return d.toLocaleDateString(undefined, {month:"short", day:"numeric"});
+  return d.toLocaleDateString(locale(), {month:"short", day:"numeric"});
 }
 function topicMasteredCount(topicId){
   return (state.mastered[topicId]||[]).length;
@@ -264,9 +268,9 @@ function isTopicMastered(t){ return topicMasteredCount(t.id) >= getTopicProblems
 function heroLine(){
   const total = TOPICS.length;
   const done = TOPICS.filter(isTopicMastered).length;
-  if(done===0) return "34 topics · self-check practice";
-  if(done===total) return "Every region cleared — legendary.";
-  return `${done} / ${total} topics mastered · keep going`;
+  if(done===0) return L("34 topics · self-check practice","34 temas · práctica con autocomprobación");
+  if(done===total) return L("Every region cleared — legendary.","Todas las regiones completadas — ¡legendario!");
+  return L(`${done} / ${total} topics mastered · keep going`,`${done} / ${total} temas dominados · ¡sigue así!`);
 }
 
 /* ===================== VIEW STATE ===================== */
@@ -320,7 +324,7 @@ function startBoss(levelId){
   for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
   session = {
     mode:"boss", bossLevel:level.id, xpPerCorrect:level.xpPerCorrect,
-    title:`Boss Battle — ${level.name}`, cat:null, learnPhase:null, guidedCount:0, practiceCount:pool.length,
+    title:L(`Boss Battle — ${level.name}`,`Batalla de jefe — ${level.name}`), cat:null, learnPhase:null, guidedCount:0, practiceCount:pool.length,
     problems: pool, pos:0, revealed:false, autoResult:null, attempts:0, retryFlash:false,
     results:[], correctCount:0, why:null,
     peekOpen:false, peekPos:0, termsOpen:false, draftAnswer:"", draftBlanks:null,
@@ -348,7 +352,7 @@ function startReview(){
   for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
   session = {
     mode:"review", xpPerCorrect:12, reviewTopics:due,
-    title:"Daily Review", cat:null, learnPhase:null, guidedCount:0, practiceCount:pool.length,
+    title:L("Daily Review","Repaso diario"), cat:null, learnPhase:null, guidedCount:0, practiceCount:pool.length,
     problems: pool.map((p,idx)=>({...p, idx, kind:"practice"})), pos:0, revealed:false, autoResult:null, attempts:0, retryFlash:false,
     results:[], correctCount:0, why:null,
     peekOpen:false, peekPos:0, termsOpen:false, draftAnswer:"", draftBlanks:null,
@@ -401,17 +405,17 @@ function reviewCardHTML(){
   const due = dueTopics(state.review);
   if(due.length){
     const names = due.slice(0,3).map(id=>{ const t=TOPICS.find(x=>x.id===id); return t ? t.title : ""; }).filter(Boolean).join(", ");
-    const more = due.length>3 ? ` +${due.length-3} more` : "";
+    const more = due.length>3 ? L(` +${due.length-3} more`,` +${due.length-3} más`) : "";
     return `<div class="review-card due">
-      <div class="review-text"><div class="review-title">🔁 Daily Review <span class="review-count">${due.length} due</span></div>
+      <div class="review-text"><div class="review-title">🔁 ${L("Daily Review","Repaso diario")} <span class="review-count">${L(`${due.length} due`,`${due.length} pendientes`)}</span></div>
       <div class="review-sub">${names}${more}</div></div>
-      <button type="button" class="review-go" id="reviewBtn">Start review</button></div>`;
+      <button type="button" class="review-go" id="reviewBtn">${L("Start review","Empezar repaso")}</button></div>`;
   }
   const next = nextDueDay(state.review);
   if(next){
     const n = daysBetween(localDay(), next);
-    return `<div class="review-card done"><div class="review-text"><div class="review-title">✅ Review is all caught up</div>
-      <div class="review-sub">Next review ${n===1 ? "tomorrow" : "in "+n+" days"}</div></div></div>`;
+    return `<div class="review-card done"><div class="review-text"><div class="review-title">✅ ${L("Review is all caught up","El repaso está al día")}</div>
+      <div class="review-sub">${L(`Next review ${n===1 ? "tomorrow" : "in "+n+" days"}`,`Próximo repaso ${n===1 ? "mañana" : "en "+n+" días"}`)}</div></div></div>`;
   }
   return "";
 }
@@ -426,7 +430,7 @@ function startDaily(){
   });
   session = {
     mode:"daily", xpPerCorrect:DAILY_XP_PER_CORRECT, day:today,
-    title:"Daily Challenge", cat:null, learnPhase:null, guidedCount:0, practiceCount:pool.length,
+    title:L("Daily Challenge","Reto diario"), cat:null, learnPhase:null, guidedCount:0, practiceCount:pool.length,
     problems: pool.map((p,idx)=>({...p, idx, kind:"practice"})), pos:0, revealed:false, autoResult:null, attempts:0, retryFlash:false,
     results:[], correctCount:0, why:null,
     peekOpen:false, peekPos:0, termsOpen:false, draftAnswer:"", draftBlanks:null,
@@ -452,12 +456,12 @@ function dailyCardHTML(){
   const today = localDay();
   if(dailyDoneToday(state.daily, today)){
     const d = state.daily;
-    return `<div class="daily-card done"><div class="review-text"><div class="review-title">✅ Daily Challenge done</div>
-      <div class="review-sub">${d.correct}/${d.total} right today · ${state.dailyCount} completed in all · a new one tomorrow</div></div></div>`;
+    return `<div class="daily-card done"><div class="review-text"><div class="review-title">✅ ${L("Daily Challenge done","Reto diario completado")}</div>
+      <div class="review-sub">${L(`${d.correct}/${d.total} right today · ${state.dailyCount} completed in all · a new one tomorrow`,`${d.correct}/${d.total} correctas hoy · ${state.dailyCount} completados en total · mañana hay uno nuevo`)}</div></div></div>`;
   }
-  return `<div class="daily-card"><div class="review-text"><div class="review-title">⭐ Daily Challenge</div>
-    <div class="review-sub">5 mixed questions, the same for everyone today · +${DAILY_BONUS_XP} bonus XP</div></div>
-    <button type="button" class="review-go" id="dailyBtn">Play</button></div>`;
+  return `<div class="daily-card"><div class="review-text"><div class="review-title">⭐ ${L("Daily Challenge","Reto diario")}</div>
+    <div class="review-sub">${L(`5 mixed questions, the same for everyone today · +${DAILY_BONUS_XP} bonus XP`,`5 preguntas variadas, las mismas para todos hoy · +${DAILY_BONUS_XP} XP de bono`)}</div></div>
+    <button type="button" class="review-go" id="dailyBtn">${L("Play","Jugar")}</button></div>`;
 }
 
 // ---- Progress report (see report.js) ----
@@ -469,75 +473,80 @@ function logActivity(){
   if(!real.length) return;
   state.activity = addActivity(state.activity, {
     at: Date.now(), mode: session.mode, title: session.title,
+    topicId: session.topicId, bossLevel: session.bossLevel,   // so the report can show the name in the current language
     correct: real.filter(x=>x.r==="good").length, total: real.length,
   });
   saveState();
 }
-const ACTIVITY_LABEL = {topic:"Topic", review:"Daily Review", daily:"Daily Challenge", boss:"Boss Battle", placement:"Check-in"};
+const activityLabel = (mode)=>({topic:L("Topic","Tema"), review:L("Daily Review","Repaso diario"), daily:L("Daily Challenge","Reto diario"), boss:L("Boss Battle","Batalla de jefe"), placement:L("Check-in","Chequeo")}[mode] || mode);
 function activityText(e){
-  const label = ACTIVITY_LABEL[e.mode] || e.mode;
-  const title = e.title || "";
-  return !title ? label : title.startsWith(label) ? title : `${label}: ${title}`;
+  const label = activityLabel(e.mode);
+  let title = e.title || "";
+  if(e.mode==="topic" && e.topicId){ const t = TOPICS.find(x=>x.id===e.topicId); if(t) title = t.title; }
+  else if(e.mode==="boss" && e.bossLevel){ const l = BOSS_LEVELS.find(x=>x.id===e.bossLevel); if(l) title = L(l.name,l.es); }
+  else if(e.mode!=="topic" && e.mode!=="boss") title = "";   // Daily Review / Daily Challenge / Check-in: the label says it all
+  // Older entries have only a stored title, which may already start with the label.
+  return !title ? label : (title.startsWith(label) || title.startsWith("Boss Battle")) ? title : `${label}: ${title}`;
 }
 function whenText(at){
   const days = Math.round((new Date().setHours(0,0,0,0) - new Date(at).setHours(0,0,0,0)) / 86400000);
-  const time = new Date(at).toLocaleTimeString(undefined,{hour:"numeric", minute:"2-digit"});
-  if(days<=0) return `Today, ${time}`;
-  if(days===1) return `Yesterday, ${time}`;
-  return `${new Date(at).toLocaleDateString(undefined,{month:"short", day:"numeric"})}, ${time}`;
+  const time = new Date(at).toLocaleTimeString(locale(),{hour:"numeric", minute:"2-digit"});
+  if(days<=0) return L(`Today, ${time}`,`Hoy, ${time}`);
+  if(days===1) return L(`Yesterday, ${time}`,`Ayer, ${time}`);
+  return `${new Date(at).toLocaleDateString(locale(),{month:"short", day:"numeric"})}, ${time}`;
 }
 function openReport(){ view = "report"; render(); }
 function renderReport(){
-  const labels = {}; Object.keys(CAT).forEach(k=>{ labels[k] = CAT[k].label; });
+  const labels = {}; Object.keys(CAT).forEach(k=>{ labels[k] = L(CAT[k].label, CAT[k].es); });
   const r = buildReport(state, TOPICS, {
     regionOrder: REGION_ORDER, labels, problemCount: t=>getTopicProblems(t).length,
     badgesEarned: Object.keys(state.badges||{}).length, badgesTotal: ACHIEVEMENTS.length,
   });
-  const chip = lv => lv ? `<span class="rp-chip lvl-${lv}">${(PLACEMENT_LEVEL[lv]||PLACEMENT_LEVEL.needs).icon} ${(PLACEMENT_LEVEL[lv]||PLACEMENT_LEVEL.needs).label}</span>` : "";
+  const chip = lv => lv ? `<span class="rp-chip lvl-${lv}">${(PLACEMENT_LEVEL[lv]||PLACEMENT_LEVEL.needs).icon} ${L((PLACEMENT_LEVEL[lv]||PLACEMENT_LEVEL.needs).label,(PLACEMENT_LEVEL[lv]||PLACEMENT_LEVEL.needs).es)}</span>` : "";
   const tile = (n,l)=>`<div class="rp-tile"><div class="rp-n">${n}</div><div class="rp-l">${l}</div></div>`;
-  const nextReviewText = r.reviewsDue ? `${r.reviewsDue} topic${r.reviewsDue>1?"s":""} due now`
-    : r.nextReview ? `Next review ${r.nextReview}` : "No reviews scheduled yet";
+  const nextReviewText = r.reviewsDue ? L(`${r.reviewsDue} topic${r.reviewsDue>1?"s":""} due now`,`${r.reviewsDue} ${r.reviewsDue>1?"temas pendientes":"tema pendiente"} ahora`)
+    : r.nextReview ? L(`Next review ${r.nextReview}`,`Próximo repaso ${r.nextReview}`) : L("No reviews scheduled yet","Todavía no hay repasos programados");
   app.innerHTML = `
   <div class="view-enter report">
     <div class="report-head">
       <div>
-        <h1>Progress report${r.name ? ` · ${escapeHtml(r.name)}` : ""}</h1>
-        <p>Algebra Quest · ${new Date().toLocaleDateString(undefined,{month:"long", day:"numeric", year:"numeric"})} · ${r.lastPlayed ? `last played ${whenText(r.lastPlayed).toLowerCase()}` : "no sessions yet"}</p>
+        <h1>${L("Progress report","Informe de progreso")}${r.name ? ` · ${escapeHtml(r.name)}` : ""}</h1>
+        <p>Algebra Quest · ${new Date().toLocaleDateString(locale(),{month:"long", day:"numeric", year:"numeric"})} · ${r.lastPlayed ? L(`last played ${whenText(r.lastPlayed).toLowerCase()}`,`última vez que jugó: ${whenText(r.lastPlayed).toLowerCase()}`) : L("no sessions yet","todavía no hay sesiones")}</p>
       </div>
       <div class="report-actions no-print">
-        <button class="btn btn-ghost" id="printBtn">🖨️ Print / Save as PDF</button>
-        <button class="btn btn-ghost" id="homeBtn">Back to map</button>
+        <button class="btn btn-ghost" id="printBtn">🖨️ ${L("Print / Save as PDF","Imprimir / Guardar como PDF")}</button>
+        <button class="btn btn-ghost" id="homeBtn">${L("Back to map","Volver al mapa")}</button>
       </div>
     </div>
 
     <div class="rp-tiles">
-      ${tile("Lv "+r.level, "Level")}
-      ${tile(r.xp, "Total XP")}
-      ${tile(r.topicsMastered+"/"+r.totalTopics, "Topics mastered")}
-      ${tile(r.rightAnswers, "Right answers")}
-      ${tile(r.badgesEarned+"/"+r.badgesTotal, "Badges")}
-      ${tile(r.dailies, "Daily challenges")}
+      ${tile(L("Lv ","Nv ")+r.level, L("Level","Nivel"))}
+      ${tile(r.xp, L("Total XP","XP total"))}
+      ${tile(r.topicsMastered+"/"+r.totalTopics, L("Topics mastered","Temas dominados"))}
+      ${tile(r.rightAnswers, L("Right answers","Respuestas correctas"))}
+      ${tile(r.badgesEarned+"/"+r.badgesTotal, L("Badges","Insignias"))}
+      ${tile(r.dailies, L("Daily challenges","Retos diarios"))}
     </div>
 
-    <h2 class="rp-h">Progress by area</h2>
+    <h2 class="rp-h">${L("Progress by area","Progreso por área")}</h2>
     <div class="rp-areas">${r.regions.map(x=>`
       <div class="rp-area">
-        <div class="rp-area-top"><span>${CAT[x.cat].icon} ${x.label} ${chip(x.checkin)}</span><span>${x.mastered}/${x.total} topics</span></div>
-        <div class="rp-bar" role="img" aria-label="${x.pct}% mastered"><div class="rp-bar-fill" style="width:${x.pct}%;--cat:${CAT[x.cat].color}"></div></div>
+        <div class="rp-area-top"><span>${CAT[x.cat].icon} ${x.label} ${chip(x.checkin)}</span><span>${x.mastered}/${x.total} ${L("topics","temas")}</span></div>
+        <div class="rp-bar" role="img" aria-label="${x.pct}% ${L("mastered","dominado")}"><div class="rp-bar-fill" style="width:${x.pct}%;--cat:${CAT[x.cat].color}"></div></div>
       </div>`).join("")}</div>
 
-    <h2 class="rp-h">Where to help</h2>
+    <h2 class="rp-h">${L("Where to help","Dónde ayudar")}</h2>
     ${r.attention.length
       ? `<ul class="rp-list">${r.attention.map(a=>`<li class="kind-${a.kind}">${a.text}</li>`).join("")}</ul>`
-      : `<p class="rp-empty">Nothing flagged right now.${r.checkinDone ? "" : " The check-in (🧭 on the map) shows which areas need work."}</p>`}
-    ${r.suggestedStart ? `<p class="rp-note">Suggested starting point from the check-in: <strong>${r.suggestedStart}</strong></p>` : ""}
-    <p class="rp-note">Daily Review: ${nextReviewText} · ${r.reviewsDone} review${r.reviewsDone===1?"":"s"} finished · best answer streak ${r.bestStreak}</p>
+      : `<p class="rp-empty">${L("Nothing flagged right now.","No hay nada señalado por ahora.")}${r.checkinDone ? "" : L(" The check-in (🧭 on the map) shows which areas need work."," El chequeo (🧭 en el mapa) muestra qué áreas necesitan trabajo.")}</p>`}
+    ${r.suggestedStart ? `<p class="rp-note">${L("Suggested starting point from the check-in:","Punto de partida sugerido por el chequeo:")} <strong>${r.suggestedStart}</strong></p>` : ""}
+    <p class="rp-note">${L("Daily Review","Repaso diario")}: ${nextReviewText} · ${L(`${r.reviewsDone} review${r.reviewsDone===1?"":"s"} finished`,`${r.reviewsDone} ${r.reviewsDone===1?"repaso terminado":"repasos terminados"}`)} · ${L("best answer streak","mejor racha de respuestas")} ${r.bestStreak}</p>
 
-    <h2 class="rp-h">Recent activity</h2>
+    <h2 class="rp-h">${L("Recent activity","Actividad reciente")}</h2>
     ${r.recent.length
-      ? `<table class="rp-table"><thead><tr><th>When</th><th>What</th><th>Score</th></tr></thead><tbody>${r.recent.map(e=>`
+      ? `<table class="rp-table"><thead><tr><th>${L("When","Cuándo")}</th><th>${L("What","Qué")}</th><th>${L("Score","Puntuación")}</th></tr></thead><tbody>${r.recent.map(e=>`
         <tr><td>${whenText(e.at)}</td><td>${escapeHtml(activityText(e))}</td><td>${describeScore(e)}</td></tr>`).join("")}</tbody></table>`
-      : `<p class="rp-empty">No finished sessions yet. They will show up here.</p>`}
+      : `<p class="rp-empty">${L("No finished sessions yet. They will show up here.","Todavía no hay sesiones terminadas. Aparecerán aquí.")}</p>`}
   </div>`;
   document.getElementById("homeBtn").addEventListener("click", backHome);
   document.getElementById("printBtn").addEventListener("click", ()=>window.print());
@@ -563,11 +572,11 @@ function showBadgeToast(list){
   const el = document.createElement("div");
   el.className = "badge-toast";
   el.setAttribute("role","status");
-  el.innerHTML = list.map(a=>`<div class="bt-row"><span class="bt-icon" aria-hidden="true">${a.icon}</span><span><strong>Badge earned!</strong> ${a.title}</span></div>`).join("");
+  el.innerHTML = list.map(a=>`<div class="bt-row"><span class="bt-icon" aria-hidden="true">${a.icon}</span><span><strong>${L("Badge earned!","¡Insignia ganada!")}</strong> ${L(a.title,a.es)}</span></div>`).join("");
   el.addEventListener("click", ()=>el.remove());
   document.body.appendChild(el);
   setTimeout(()=>playSound("badge"), 450);
-  announce(`Badge earned: ${list.map(a=>a.title).join(", ")}`);
+  announce(L(`Badge earned: ${list.map(a=>a.title).join(", ")}`,`Insignia ganada: ${list.map(a=>a.es).join(", ")}`));
   setTimeout(()=>el.remove(), 5000);
 }
 function openBadges(){ view = "badges"; render(); }
@@ -578,9 +587,9 @@ function renderBadges(){
     const when = have[a.id];
     return `<div class="badge-tile${when ? " earned" : " locked"}">
       <div class="badge-icon" aria-hidden="true">${when ? a.icon : "🔒"}</div>
-      <div class="badge-title">${a.title}</div>
-      <div class="badge-desc">${a.desc}</div>
-      ${when ? `<div class="badge-date">${new Date(when).toLocaleDateString(undefined,{month:"short", day:"numeric", year:"numeric"})}</div>` : ""}
+      <div class="badge-title">${L(a.title,a.es)}</div>
+      <div class="badge-desc">${L(a.desc,a.esDesc)}</div>
+      ${when ? `<div class="badge-date">${new Date(when).toLocaleDateString(locale(),{month:"short", day:"numeric", year:"numeric"})}</div>` : ""}
     </div>`;
   }).join("");
   app.innerHTML = `
@@ -588,12 +597,12 @@ function renderBadges(){
   <div class="topbar">
     <div class="brand">
       <div class="mark">${avatarIcon(state.avatar)}</div>
-      <div><h1>Badges</h1><p><span id="badgeCount">${count}</span> of ${ACHIEVEMENTS.length} earned</p></div>
+      <div><h1>${L("Badges","Insignias")}</h1><p>${L(`<span id="badgeCount">${count}</span> of ${ACHIEVEMENTS.length} earned`,`<span id="badgeCount">${count}</span> de ${ACHIEVEMENTS.length} ganadas`)}</p></div>
     </div>
     ${statsBarHTML()}
   </div>
   <div class="badge-grid">${tiles}</div>
-  <div class="btn-row"><button class="btn btn-ghost" id="homeBtn">Back to map</button></div>
+  <div class="btn-row"><button class="btn btn-ghost" id="homeBtn">${L("Back to map","Volver al mapa")}</button></div>
   </div>`;
   document.getElementById("homeBtn").addEventListener("click", backHome);
 }
@@ -608,20 +617,20 @@ function shopItemHTML(item){
   const visual = item.kind==="avatar"
     ? `<span class="shop-icon">${item.icon}</span>`
     : item.kind==="theme"
-      ? `<span class="shop-icon shop-icon-theme"><span class="theme-prev theme-prev-${item.id}" role="img" aria-label="Preview of the ${item.label} theme"></span></span>`
+      ? `<span class="shop-icon shop-icon-theme"><span class="theme-prev theme-prev-${item.id}" role="img" aria-label="${L(`Preview of the ${item.label} theme`,`Vista previa del tema ${item.es}`)}"></span></span>`
       : `<span class="shop-icon"><span class="frame-prev frame-${item.id}">√</span></span>`;
   let action;
   if(owned){
     action = equipped
-      ? `<button type="button" class="shop-btn on" data-unequip="${item.id}" aria-pressed="true">✓ Equipped</button>`
-      : `<button type="button" class="shop-btn" data-equip="${item.id}">Equip</button>`;
+      ? `<button type="button" class="shop-btn on" data-unequip="${item.id}" aria-pressed="true">✓ ${L("Equipped","Puesto")}</button>`
+      : `<button type="button" class="shop-btn" data-equip="${item.id}">${L("Equip","Ponerse")}</button>`;
   }else{
     const can = buy(state.xp, state.owned, item.id).ok;
     const confirming = pendingBuy===item.id;
     action = `<button type="button" class="shop-btn buy${confirming ? " confirm" : ""}" data-buy="${item.id}" ${can ? "" : "disabled"}>${
-      !can ? `${item.price} XP` : confirming ? "Tap again to buy" : `Buy · ${item.price} XP`}</button>`;
+      !can ? `${item.price} XP` : confirming ? L("Tap again to buy","Toca otra vez para comprar") : L(`Buy · ${item.price} XP`,`Comprar · ${item.price} XP`)}</button>`;
   }
-  return `<div class="shop-item${owned ? " owned" : ""}">${visual}<div class="shop-name">${item.label}</div>${action}</div>`;
+  return `<div class="shop-item${owned ? " owned" : ""}">${visual}<div class="shop-name">${L(item.label,item.es)}</div>${action}</div>`;
 }
 function renderShop(){
   const bal = balance(state.xp, state.owned);
@@ -631,16 +640,16 @@ function renderShop(){
   <div class="topbar">
     <div class="brand">
       <div class="mark">${avatarIcon(state.avatar)}</div>
-      <div><h1>Shop</h1><p>Spend XP on new looks. Your level never goes down.</p></div>
+      <div><h1>${L("Shop","Tienda")}</h1><p>${L("Spend XP on new looks. Your level never goes down.","Gasta XP en looks nuevos. Tu nivel nunca baja.")}</p></div>
     </div>
     ${statsBarHTML()}
   </div>
-  <div class="shop-balance">You have <strong id="shopBalance">${bal}</strong> XP to spend</div>
+  <div class="shop-balance">${L(`You have <strong id="shopBalance">${bal}</strong> XP to spend`,`Tienes <strong id="shopBalance">${bal}</strong> XP para gastar`)}</div>
   ${shopMsg ? `<div class="shop-msg" role="status">${shopMsg}</div>` : ""}
-  ${section("theme","Themes")}
-  ${section("avatar","Characters")}
-  ${section("frame","Frames")}
-  <div class="btn-row"><button class="btn btn-ghost" id="homeBtn">Back to map</button></div>
+  ${section("theme",L("Themes","Temas"))}
+  ${section("avatar",L("Characters","Personajes"))}
+  ${section("frame",L("Frames","Marcos"))}
+  <div class="btn-row"><button class="btn btn-ghost" id="homeBtn">${L("Back to map","Volver al mapa")}</button></div>
   </div>`;
   document.getElementById("homeBtn").addEventListener("click", backHome);
   app.querySelectorAll("[data-buy]").forEach(btn=>btn.addEventListener("click", ()=>{
@@ -654,11 +663,11 @@ function renderShop(){
       if(item.kind==="avatar") state.avatar = id; else if(item.kind==="theme") state.theme = id; else state.frame = id;   // equip what you just bought
       saveState(); applyTheme(state.theme);
       checkAchievements();
-      shopMsg = `${item.label} is yours and equipped!`;
+      shopMsg = L(`${item.label} is yours and equipped!`,`¡${item.es} es tuyo y ya lo tienes puesto!`);
       playSound("buy");
       burstConfetti();
     }else{
-      shopMsg = res.reason==="poor" ? `You need ${res.short} more XP for that.` : "That one isn't available.";
+      shopMsg = res.reason==="poor" ? L(`You need ${res.short} more XP for that.`,`Te faltan ${res.short} XP para eso.`) : L("That one isn't available.","Ese no está disponible.");
     }
     render();
   }));
@@ -693,7 +702,7 @@ function startPlacement(){
   });
   session = {
     mode:"placement", xpPerCorrect:0,
-    title:"Check-in", cat:null, learnPhase:null, guidedCount:0, practiceCount:pool.length,
+    title:L("Check-in","Chequeo"), cat:null, learnPhase:null, guidedCount:0, practiceCount:pool.length,
     problems: pool.map((p,idx)=>({...p, idx, kind:"practice"})), pos:0, revealed:false, autoResult:null, attempts:0, retryFlash:false,
     results:[], correctCount:0, why:null,
     peekOpen:false, peekPos:0, termsOpen:false, draftAnswer:"", draftBlanks:null,
@@ -712,23 +721,67 @@ function finishPlacement(){
 function placementCardHTML(){
   if(state.placement || state.placementDismissed) return "";
   return `<div class="placement-card">
-    <div class="review-text"><div class="review-title">🧭 Find your starting point</div>
-    <div class="review-sub">A short check-in: 2 questions from each area, about 10 minutes. No hints, no XP, and nothing is graded.</div></div>
-    <div class="placement-actions"><button type="button" class="review-go" id="placementCardBtn">Start check-in</button>
-    <button type="button" class="btn-link" id="placementDismissBtn">Not now</button></div></div>`;
+    <div class="review-text"><div class="review-title">🧭 ${L("Find your starting point","Encuentra tu punto de partida")}</div>
+    <div class="review-sub">${L("A short check-in: 2 questions from each area, about 10 minutes. No hints, no XP, and nothing is graded.","Un chequeo corto: 2 preguntas de cada área, unos 10 minutos. Sin pistas, sin XP y nada se califica.")}</div></div>
+    <div class="placement-actions"><button type="button" class="review-go" id="placementCardBtn">${L("Start check-in","Empezar chequeo")}</button>
+    <button type="button" class="btn-link" id="placementDismissBtn">${L("Not now","Ahora no")}</button></div></div>`;
 }
 const PLACEMENT_LEVEL = {
-  solid:{label:"Solid", icon:"✅"}, getting:{label:"Getting there", icon:"🟡"}, needs:{label:"Needs work", icon:"🔁"},
+  solid:{label:"Solid", es:"Sólido", icon:"✅"}, getting:{label:"Getting there", es:"En camino", icon:"🟡"}, needs:{label:"Needs work", es:"Necesita trabajo", icon:"🔁"},
 };
 function placementChip(cat){
   const row = state.placement && state.placement.regions && state.placement.regions[cat];
   if(!row) return "";
   const lv = PLACEMENT_LEVEL[row.level] || PLACEMENT_LEVEL.needs;
-  return `<span class="placement-chip lvl-${row.level}" title="Check-in: ${row.correct} of ${row.total} right">${lv.icon} ${lv.label}</span>`;
+  return `<span class="placement-chip lvl-${row.level}" title="${L(`Check-in: ${row.correct} of ${row.total} right`,`Chequeo: ${row.correct} de ${row.total} correctas`)}">${lv.icon} ${L(lv.label,lv.es)}</span>`;
 }
 
 function backHome(){
   view = "home"; session = null; render();
+}
+/* ---- language (English / Dominican Spanish) ----
+   The choice is saved with the learner (state.lang) and remembered on the device so the sign-in screens match. */
+function languageReady(lang){ return lang!=="es" || contentLoaded(); }
+function applyLanguageNow(lang){ applyContentLanguage(lang); setLang(lang); refreshVoices(); }
+// Resolves to the language actually in use: if the Spanish text can't be downloaded (offline the first time), stay in English.
+async function ensureLanguage(lang){
+  if(lang==="es"){
+    try{ await loadContentTable("es"); }
+    catch{ lang = "en"; }
+  }
+  applyLanguageNow(lang);
+  return lang;
+}
+// Rerolled practice sets were generated in the old language; make fresh ones (same length, so mastery counts stay valid).
+function regenerateCustomProblems(){
+  const sets = state.customProblems || {};
+  state.customLang = getLang();
+  Object.keys(sets).forEach(id=>{
+    const t = TOPICS.find(x=>x.id===Number(id));
+    const fresh = t && GENERATORS[t.id] ? GENERATORS[t.id](t) : null;
+    if(Array.isArray(fresh) && fresh.length){
+      sets[id] = fresh;
+      if(state.mastered[id]) state.mastered[id] = state.mastered[id].filter(i=>i<fresh.length);
+    }else delete sets[id];
+  });
+}
+async function changeLanguage(next){
+  if(next===getLang()) return;
+  const got = await ensureLanguage(next);
+  if(got!==next){ announce(L("Couldn't load Spanish. Check your connection and try again.","No se pudo cargar el español. Revisa tu conexión e inténtalo de nuevo.")); return; }
+  state.lang = next;
+  rememberDeviceLang(next);
+  regenerateCustomProblems();
+  saveState();
+  reseedDisplay();
+  render();
+  announce(L("Language: English","Idioma: español"));
+}
+export function currentLanguage(){ return getLang(); }
+// Used by the sign-in screens, which are outside the game: switch language without a learner loaded.
+export async function setDeviceLanguage(lang){
+  await ensureLanguage(lang);
+  rememberDeviceLang(lang);
 }
 function advanceToExamples(){
   session.learnPhase = "examples"; session.exPos = 0; render();
@@ -763,16 +816,26 @@ const EXAMPLE_MATCH_MARKERS = [
   "axis of symmetry","rationalize","consecutive","inverse variation","direct variation",
   "perpendicular","parallel","dashed","solid","shade above","shade below","open circle",
   "closed circle","median","mode","range","cube","cubes","denominator","fraction","decimal",
+  // Spanish equivalents, so the best-example match works in both languages
+  "par","impar","negativo","cero","discriminante","eje de simetría","racionaliza","consecutivo",
+  "variación inversa","variación directa","paralela","discontinua","continua","por encima","por debajo",
+  "círculo abierto","círculo cerrado","mediana","moda","rango","cubos","denominador","fracción",
 ];
 const MATCH_STOPWORDS = new Set(["the","is","of","to","and","or","in","on","for","with","that",
   "this","are","be","as","at","by","from","into","it","its","you","your","find","answer","step",
   "steps","final","solve","what","does","do","value","values","number","numbers","same","each",
   "both","one","two","three","four","five","six","first","second","third","get","gets","use",
   "using","term","terms","equation","equations","write","plug","check","watch","leave","sign",
-  "signs","side","sides","answers"]);
+  "signs","side","sides","answers",
+  // Spanish filler words
+  "para","como","cada","esto","esta","este","estos","estas","con","los","las","una","uno","dos","tres",
+  "cuatro","cinco","paso","pasos","respuesta","halla","resuelve","usa","valor","valores","número","números",
+  "mismo","misma","ambos","primero","segundo","tercero","signo","signos","lado","lados","término","términos",
+  "ecuación","ecuaciones","escribe","comprueba","fíjate","cuando","donde","sobre","entre","tiene","luego",
+  "después","antes","solo","también","porque","cualquier","siempre","nunca","todos","todas","puedes","necesitas"]);
 function significantWords(text){
   const plain = stripTags(String(text)).toLowerCase();
-  return (plain.match(/[a-z]+/g) || []).filter(w => w.length>=4 && !MATCH_STOPWORDS.has(w));
+  return (plain.match(/[a-záéíóúñü]+/g) || []).filter(w => w.length>=4 && !MATCH_STOPWORDS.has(w));
 }
 function pickBestExampleIndex(problem, examples){
   if(!examples || examples.length<=1) return 0;
@@ -834,15 +897,15 @@ function hintBoxHTML(p){
   if(!level) return "";
   const {rule, step} = hintsFor(p);
   let html = "";
-  if(rule) html += `<div class="hint-box"><span class="lbl">💡 Remember</span>${renderStepText(rule)}</div>`;
-  if(level>=2 && step) html += `<div class="hint-box"><span class="lbl">💡 First step</span>${renderStepText(step)}</div>`;
+  if(rule) html += `<div class="hint-box"><span class="lbl">💡 ${L("Remember","Recuerda")}</span>${renderStepText(rule)}</div>`;
+  if(level>=2 && step) html += `<div class="hint-box"><span class="lbl">💡 ${L("First step","Primer paso")}</span>${renderStepText(step)}</div>`;
   return html;
 }
 function hintButtonHTML(p){
   const level = session.hintLevel || 0;
   const {rule, step} = hintsFor(p);
-  if(level===0 && (rule || step)) return `<button class="btn-link" id="hintBtn">💡 Need a hint?</button>`;
-  if(level===1 && step) return `<button class="btn-link" id="hintBtn">💡 Show another hint</button>`;
+  if(level===0 && (rule || step)) return `<button class="btn-link" id="hintBtn">💡 ${L("Need a hint?","¿Necesitas una pista?")}</button>`;
+  if(level===1 && step) return `<button class="btn-link" id="hintBtn">💡 ${L("Show another hint","Mostrar otra pista")}</button>`;
   return "";
 }
 function showNextHint(){
@@ -877,9 +940,9 @@ function submitTyped(){
   const threshold = (p.kind==="guided" || session.mode==="placement") ? 1 : 2;
   session.attempts = (session.attempts||0) + 1;
   session.diagnosis = matched ? null : diagnoseMistake(text, checkAnswerFor(p));
-  if(matched) announce("Correct!");
-  else if(session.attempts < threshold) announce(`Not quite. ${session.diagnosis ? session.diagnosis.message : "Give it one more try."}`);
-  else announce(`Not quite. The answer is ${stripTags(String(p.a))}. ${session.diagnosis ? session.diagnosis.message : ""}`);
+  if(matched) announce(L("Correct!","¡Correcto!"));
+  else if(session.attempts < threshold) announce(L(`Not quite. ${session.diagnosis ? session.diagnosis.message : "Give it one more try."}`,`Casi. ${session.diagnosis ? session.diagnosis.message : "Inténtalo una vez más."}`));
+  else announce(L(`Not quite. The answer is ${stripTags(String(p.a))}. ${session.diagnosis ? session.diagnosis.message : ""}`,`Casi. La respuesta es ${stripTags(String(p.a))}. ${session.diagnosis ? session.diagnosis.message : ""}`));
   if(!matched && session.attempts < threshold){
     session.retryFlash = true;
     if(p.kind==="practice" && session.mode!=="placement" && !(session.hintLevel>0)) session.hintLevel = 1; // a miss shows the rule
@@ -1018,7 +1081,7 @@ function confirmIconBtn(btn){
   pendingIconConfirm = btn.id;
   const oldText = btn.textContent, oldTitle = btn.title;
   btn.textContent = "✓";
-  btn.title = "Tap again to confirm reset";
+  btn.title = L("Tap again to confirm reset","Toca otra vez para confirmar el reinicio");
   btn.classList.add("confirm-pending");
   setTimeout(()=>{
     if(btn && document.body.contains(btn)){
@@ -1087,9 +1150,14 @@ export function loadLearner({key, initial=null, onSave=null} = {}){
   try{ localStorage.setItem(storageKey, JSON.stringify(state)); }catch(e){}
   streak = 0; view = "home"; session = null;
   applyTheme(state.theme);
-  checkAchievements(true);
-  reseedDisplay();
-  render();
+  const finish = ()=>{
+    // Re-rolled sets saved in the other language (e.g. chosen on another device) are regenerated in this one.
+    if(Object.keys(state.customProblems||{}).length && (state.customLang||"en")!==getLang()){ regenerateCustomProblems(); saveState(); }
+    checkAchievements(true); reseedDisplay(); render();
+  };
+  const want = state.lang || deviceLang();
+  if(languageReady(want)){ applyLanguageNow(want); finish(); }
+  else ensureLanguage(want).then(finish);
 }
 // A newer copy of the current learner's progress arrived from the server.
 /** @param {object} next */
@@ -1098,6 +1166,8 @@ export function applyRemoteState(next){
   try{ localStorage.setItem(storageKey, JSON.stringify(state)); }catch(e){}
   applyTheme(state.theme);
   checkAchievements(true);
+  const want = state.lang || getLang();
+  if(want!==getLang()){ ensureLanguage(want).then(()=>{ if(view==="home"){ reseedDisplay(); render(); } }); return; }
   if(view==="home"){ reseedDisplay(); render(); }
 }
 /** @param {string} key */
@@ -1150,7 +1220,7 @@ function renderView(){
 function statsBarHTML(){
   return `
   <div class="stats">
-    <div class="stat-chip level"><span class="ico">⭐</span>Lv ${level()}</div>
+    <div class="stat-chip level"><span class="ico">⭐</span>${L("Lv","Nv")} ${level()}</div>
     <div class="stat-chip streak"><span class="ico">🔥</span>${streak}</div>
   </div>`;
 }
@@ -1160,34 +1230,34 @@ function themePanelHTML(){
     const pressed = state.theme===t.id;
     return `<button type="button" class="theme-swatch" data-theme-pick="${t.id}" role="option" aria-selected="${pressed}">
       <span class="swatch-dot" style="--sw-a:${t.a};--sw-b:${t.b};--sw-c:${t.c}" aria-hidden="true"></span>
-      <span>${t.name}</span>
+      <span>${L(t.name,t.es)}</span>
       <span class="swatch-check" aria-hidden="true">✓</span>
     </button>`;
   }).join("");
-  return `<div class="theme-panel" id="themePanel" role="listbox" aria-label="Choose a visual theme">${swatches}</div>`;
+  return `<div class="theme-panel" id="themePanel" role="listbox" aria-label="${L("Choose a visual theme","Elige un tema visual")}">${swatches}</div>`;
 }
 
 function avatarPanelHTML(){
   const options = allowedAvatars().map(a=>{
     const pressed = (state.avatar||"root")===a.id;
-    return `<button type="button" class="avatar-swatch" data-avatar-pick="${a.id}" role="option" aria-selected="${pressed}" title="${a.label}">
+    return `<button type="button" class="avatar-swatch" data-avatar-pick="${a.id}" role="option" aria-selected="${pressed}" title="${L(a.label,a.es)}">
       <span class="avatar-swatch-icon" aria-hidden="true">${a.icon}</span>
       <span class="avatar-swatch-check" aria-hidden="true">✓</span>
     </button>`;
   }).join("");
-  return `<div class="avatar-panel" id="avatarPanel" role="listbox" aria-label="Choose your character">${options}</div>`;
+  return `<div class="avatar-panel" id="avatarPanel" role="listbox" aria-label="${L("Choose your character","Elige tu personaje")}">${options}</div>`;
 }
 function bossPanelHTML(){
   const modes = BOSS_LEVELS.map(l=>`
     <button type="button" class="boss-mode-btn" data-boss-level="${l.id}" style="--mode-color:${l.color}">
       <span class="boss-mode-icon">${l.icon}</span>
       <span class="boss-mode-text">
-        <span class="boss-mode-name">${l.name}</span>
-        <span class="boss-mode-tagline">${l.tagline}</span>
+        <span class="boss-mode-name">${L(l.name,l.es)}</span>
+        <span class="boss-mode-tagline">${L(l.tagline,l.esTagline)}</span>
       </span>
-      <span class="boss-mode-count">🎲 ${l.count} Q</span>
+      <span class="boss-mode-count">🎲 ${l.count} ${L("Q","P")}</span>
     </button>`).join("");
-  return `<div class="boss-panel" id="bossPanel" role="group" aria-label="Choose a Boss Battle difficulty">${modes}</div>`;
+  return `<div class="boss-panel" id="bossPanel" role="group" aria-label="${L("Choose a Boss Battle difficulty","Elige la dificultad de la Batalla de jefe")}">${modes}</div>`;
 }
 function renderHome(){
   const regions = ["foundations","expressions","equations","graphing","factoring","rational","quadratics","applications"];
@@ -1196,7 +1266,7 @@ function renderHome(){
   <div class="hub-card">
     <div class="topbar">
       <div class="brand">
-        <button type="button" class="mark" id="avatarBtn" aria-haspopup="listbox" aria-expanded="${avatarPanelOpen}" title="Change your character">${avatarIcon(state.avatar)}</button>
+        <button type="button" class="mark" id="avatarBtn" aria-haspopup="listbox" aria-expanded="${avatarPanelOpen}" title="${L("Change your character","Cambia tu personaje")}">${avatarIcon(state.avatar)}</button>
         ${avatarPanelOpen ? avatarPanelHTML() : ""}
         <div>
           <h1>Algebra Quest</h1>
@@ -1206,23 +1276,24 @@ function renderHome(){
       ${statsBarHTML()}
     </div>
     <div class="xpbar-wrap">
-      <div class="xpbar-top"><span>XP</span><span><span id="xpNum">${xpIntoLevel()}</span> / 100 to Level ${level()+1}</span></div>
+      <div class="xpbar-top"><span>XP</span><span>${L(`<span id="xpNum">${xpIntoLevel()}</span> / 100 to Level ${level()+1}`,`<span id="xpNum">${xpIntoLevel()}</span> / 100 para el Nivel ${level()+1}`)}</span></div>
       <div class="xpbar-track"><div class="xpbar-fill" id="xpFill" style="width:${xpIntoLevel()}%"></div></div>
     </div>
   </div>
   <div class="theme-row">
     <div class="name-field">
-      <input type="text" id="nameInput" class="name-input${state.name ? " has-name" : ""}" placeholder="Add your name" value="${escapeHtml(state.name||"")}" maxlength="24" aria-label="Your name, used to personalize messages">
+      <input type="text" id="nameInput" class="name-input${state.name ? " has-name" : ""}" placeholder="${L("Add your name","Agrega tu nombre")}" value="${escapeHtml(state.name||"")}" maxlength="24" aria-label="${L("Your name, used to personalize messages","Tu nombre, que se usa para personalizar los mensajes")}">
     </div>
-    <button type="button" class="theme-toggle" id="dictionaryBtn" title="Terminology &amp; formula dictionary">📖 Dictionary</button>
-    <button type="button" class="theme-toggle" id="reportBtn" title="Progress report for parents and teachers">📊 Report</button>
-    <button type="button" class="theme-toggle" id="badgesBtn" title="See your badges">🏅 Badges <span class="badge-count">${Object.keys(state.badges||{}).length}/${ACHIEVEMENTS.length}</span></button>
-    <button type="button" class="theme-toggle" id="soundBtn" aria-pressed="${!soundMuted()}" title="Turn sound effects on or off">${soundMuted() ? "🔇 Muted" : "🔊 Sound"}</button>
-    <button type="button" class="theme-toggle" id="shopBtn" title="Spend XP on new characters and frames">🛍️ Shop</button>
-    <button type="button" class="theme-toggle" id="placementBtn" title="Short check-in to find where to start">🧭 ${state.placement ? "Retake check-in" : "Check-in"}</button>
-    <button type="button" class="theme-toggle" id="themeToggleBtn" aria-haspopup="listbox" aria-expanded="${themePanelOpen}" title="Change visual theme">
+    <button type="button" class="theme-toggle" id="dictionaryBtn" title="${L("Terminology &amp; formula dictionary","Diccionario de términos y fórmulas")}">📖 ${L("Dictionary","Diccionario")}</button>
+    <button type="button" class="theme-toggle" id="reportBtn" title="${L("Progress report for parents and teachers","Informe de progreso para padres y maestros")}">📊 ${L("Report","Informe")}</button>
+    <button type="button" class="theme-toggle" id="badgesBtn" title="${L("See your badges","Mira tus insignias")}">🏅 ${L("Badges","Insignias")} <span class="badge-count">${Object.keys(state.badges||{}).length}/${ACHIEVEMENTS.length}</span></button>
+    <button type="button" class="theme-toggle" id="soundBtn" aria-pressed="${!soundMuted()}" title="${L("Turn sound effects on or off","Activa o desactiva los efectos de sonido")}">${soundMuted() ? L("🔇 Muted","🔇 Silenciado") : L("🔊 Sound","🔊 Sonido")}</button>
+    <button type="button" class="theme-toggle" id="shopBtn" title="${L("Spend XP on new characters and frames","Gasta XP en personajes y marcos nuevos")}">🛍️ ${L("Shop","Tienda")}</button>
+    <button type="button" class="theme-toggle" id="placementBtn" title="${L("Short check-in to find where to start","Chequeo corto para encontrar por dónde empezar")}">🧭 ${state.placement ? L("Retake check-in","Repetir chequeo") : L("Check-in","Chequeo")}</button>
+    <button type="button" class="theme-toggle" id="langBtn" lang="${getLang()==="es" ? "en" : "es"}" title="${L("Cambiar a español","Switch to English")}">🌐 ${getLang()==="es" ? "English" : "Español"}</button>
+    <button type="button" class="theme-toggle" id="themeToggleBtn" aria-haspopup="listbox" aria-expanded="${themePanelOpen}" title="${L("Change visual theme","Cambia el tema visual")}">
       <span class="swatch-dot" style="--sw-a:${curTheme.a};--sw-b:${curTheme.b};--sw-c:${curTheme.c}" aria-hidden="true"></span>
-      Theme: ${curTheme.name}
+      ${L("Theme","Tema")}: ${L(curTheme.name,curTheme.es)}
     </button>
     ${themePanelOpen ? themePanelHTML() : ""}
   </div>
@@ -1243,7 +1314,7 @@ function renderHome(){
     const topics = TOPICS.filter(t=>t.cat===cat)
       .sort((a,b)=> SUGGESTED_ORDER.indexOf(a.id) - SUGGESTED_ORDER.indexOf(b.id));
     const regionCleared = topics.every(isTopicMastered);
-    html += `<div class="region-label"><span class="region-icon" style="--cat:${CAT[cat].color}">${CAT[cat].icon}</span>${CAT[cat].label}${placementChip(cat)}${regionCleared ? `<span class="region-cleared">Region cleared ✓</span>` : ""}</div>`;
+    html += `<div class="region-label"><span class="region-icon" style="--cat:${CAT[cat].color}">${CAT[cat].icon}</span>${L(CAT[cat].label,CAT[cat].es)}${placementChip(cat)}${regionCleared ? `<span class="region-cleared">${L("Region cleared ✓","Región completada ✓")}</span>` : ""}</div>`;
     html += `<div class="topic-grid">`;
     topics.forEach(t=>{
       displayNum++;
@@ -1258,12 +1329,12 @@ function renderHome(){
       html += `
       <div class="topic-card" style="--cat:${CAT[t.cat].color}" data-topic="${t.id}">
         ${badge}
-        <button type="button" class="topic-reset-btn" id="resetTopic-${t.id}" data-topic-reset="${t.id}" title="Reset this topic's progress">↻</button>
-        <button type="button" class="topic-reroll-btn" id="rerollTopic-${t.id}" data-topic-reroll="${t.id}" title="Get new practice problems for this topic">🎲</button>
+        <button type="button" class="topic-reset-btn" id="resetTopic-${t.id}" data-topic-reset="${t.id}" title="${L("Reset this topic's progress","Reinicia el progreso de este tema")}">↻</button>
+        <button type="button" class="topic-reroll-btn" id="rerollTopic-${t.id}" data-topic-reroll="${t.id}" title="${L("Get new practice problems for this topic","Consigue problemas de práctica nuevos para este tema")}">🎲</button>
         <div class="num">${displayNum}</div>
-        <div class="ttitle"><button type="button" class="topic-open" data-topic-open="${t.id}">${t.title}<span class="sr-only">, ${done} of ${total} mastered${state.placement && state.placement.start===t.id ? ", suggested starting point" : ""}</span></button></div>
-        ${state.placement && state.placement.start===t.id ? `<div class="start-here">⭐ Start here</div>` : ""}
-        <div class="prog-label">${done} / ${total} mastered${dateLabel ? ` <span class="prog-date">· ${dateLabel}</span>` : ""}</div>
+        <div class="ttitle"><button type="button" class="topic-open" data-topic-open="${t.id}">${t.title}<span class="sr-only">, ${L(`${done} of ${total} mastered`,`${done} de ${total} dominados`)}${state.placement && state.placement.start===t.id ? L(", suggested starting point",", punto de partida sugerido") : ""}</span></button></div>
+        ${state.placement && state.placement.start===t.id ? `<div class="start-here">⭐ ${L("Start here","Empieza aquí")}</div>` : ""}
+        <div class="prog-label">${done} / ${total} ${L("mastered","dominados")}${dateLabel ? ` <span class="prog-date">· ${dateLabel}</span>` : ""}</div>
         <div class="prog-track"><div class="prog-fill" data-topic-prog="${t.id}" style="width:${pct}%"></div></div>
       </div>`;
     });
@@ -1274,12 +1345,12 @@ function renderHome(){
   <button class="boss-card" id="bossBtn" aria-haspopup="true" aria-expanded="${bossPanelOpen}">
     <div class="bicon">⚔️</div>
     <div>
-      <h3 aria-level="2">Boss Battle</h3>
-      <p>Pick a difficulty — Easy through Hell Mode — for a focused challenge round.</p>
+      <h3 aria-level="2">${L("Boss Battle","Batalla de jefe")}</h3>
+      <p>${L("Pick a difficulty — Easy through Hell Mode — for a focused challenge round.","Elige una dificultad — de Fácil a Modo Infierno — para una ronda de reto enfocada.")}</p>
     </div>
   </button>
   ${bossPanelOpen ? bossPanelHTML() : ""}
-  <div class="reset-row"><button id="exportBtn" title="Save your progress to a file">Export progress</button><button id="importBtn" title="Load progress from a saved file">Import progress</button><button id="resetBtn">Reset all progress</button><input type="file" id="importFile" accept="application/json,.json" hidden><div id="backupMsg" role="status" aria-live="polite"></div></div>
+  <div class="reset-row"><button id="exportBtn" title="${L("Save your progress to a file","Guarda tu progreso en un archivo")}">${L("Export progress","Exportar progreso")}</button><button id="importBtn" title="${L("Load progress from a saved file","Carga el progreso desde un archivo guardado")}">${L("Import progress","Importar progreso")}</button><button id="resetBtn">${L("Reset all progress","Reiniciar todo el progreso")}</button><input type="file" id="importFile" accept="application/json,.json" hidden><div id="backupMsg" role="status" aria-live="polite"></div></div>
   `;
 
   app.innerHTML = html;
@@ -1328,7 +1399,7 @@ function renderHome(){
     a.href = url; a.download = backupFileName(state);
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(url), 1000);
-    backupMsg.textContent = "Progress saved to a file.";
+    backupMsg.textContent = L("Progress saved to a file.","Progreso guardado en un archivo.");
   });
   document.getElementById("importBtn").addEventListener("click", ()=> document.getElementById("importFile").click());
   document.getElementById("importFile").addEventListener("change", async e=>{
@@ -1342,7 +1413,7 @@ function renderHome(){
     }
   });
   document.getElementById("resetBtn").addEventListener("click", ()=>{
-    if(confirmInline("resetBtn","Reset ALL progress?")) resetProgress();
+    if(confirmInline("resetBtn",L("Reset ALL progress?","¿Reiniciar TODO el progreso?"))) resetProgress();
   });
 
   const nameInput = document.getElementById("nameInput");
@@ -1360,6 +1431,7 @@ function renderHome(){
     saveState();
   });
 
+  document.getElementById("langBtn").addEventListener("click", ()=> changeLanguage(getLang()==="es" ? "en" : "es"));
   document.getElementById("reportBtn").addEventListener("click", openReport);
   document.getElementById("badgesBtn").addEventListener("click", openBadges);
   document.getElementById("soundBtn").addEventListener("click", ()=>{
@@ -1453,7 +1525,7 @@ function confirmInline(id, label){
   if(pendingConfirm===id){ pendingConfirm=null; return true; }
   pendingConfirm = id;
   const old = btn.textContent;
-  btn.textContent = "Tap again to confirm";
+  btn.textContent = L("Tap again to confirm","Toca otra vez para confirmar");
   setTimeout(()=>{ if(btn) btn.textContent = old; if(pendingConfirm===id) pendingConfirm=null; }, 2200);
   return false;
 }
@@ -1465,36 +1537,36 @@ function renderIntro(){
   if(session.terms && session.terms.length){
     termsHtml = `
     <div class="terms-box">
-      <span class="lbl">📖 Key Terms</span>
+      <span class="lbl">📖 ${L("Key Terms","Términos clave")}</span>
       ${session.terms.map(t=>`
         <div class="term-row">
           <div class="term-name">${t.term}</div>
           <div class="term-def">${t.def}</div>
-          <div class="term-ex">Example: ${t.example}</div>
+          <div class="term-ex">${L("Example","Ejemplo")}: ${t.example}</div>
         </div>`).join("")}
     </div>`;
   }
   const html = `
   <div class="questbar">
-    <button class="backbtn" id="backBtn">←</button>
+    <button class="backbtn" id="backBtn" aria-label="${L("Back","Atrás")}">←</button>
     <div class="region-badge" style="--cat:${catColor}">${catIcon}</div>
     <div class="qtitle">
       <h2 aria-level="1">${session.title}</h2>
-      <div class="sub">Let's learn this one</div>
+      <div class="sub">${L("Let's learn this one","Vamos a aprender este tema")}</div>
     </div>
     ${statsBarHTML()}
   </div>
   <div class="why-strip"><span class="star">★</span><span>${session.why}</span></div>
   <div class="card">
     <div class="tag-row">
-      <div class="tag" style="--cat:${catColor}">Before you start</div>
-      <button class="play-btn" id="playIntroBtn" title="Read this aloud">🔊</button>
+      <div class="tag" style="--cat:${catColor}">${L("Before you start","Antes de empezar")}</div>
+      <button class="play-btn" id="playIntroBtn" title="${L("Read this aloud","Léelo en voz alta")}">🔊</button>
     </div>
     ${termsHtml}
     <div class="btn-row">
-      <button class="btn btn-primary" id="toExamplesBtn">See ${session.examples.length} Example${session.examples.length===1?"":"s"} →</button>
+      <button class="btn btn-primary" id="toExamplesBtn">${L(`See ${session.examples.length} Example${session.examples.length===1?"":"s"} →`,`Ver ${session.examples.length} ${session.examples.length===1?"ejemplo":"ejemplos"} →`)}</button>
     </div>
-    <button class="btn-link" id="skipExamplesBtn">Skip examples → go straight to practice</button>
+    <button class="btn-link" id="skipExamplesBtn">${L("Skip examples → go straight to practice","Saltar los ejemplos → ir directo a practicar")}</button>
   </div>`;
   app.innerHTML = '<div class="view-enter">' + html + '</div>';
   document.getElementById("backBtn").addEventListener("click", backHome);
@@ -1503,7 +1575,7 @@ function renderIntro(){
   wireSpeakButton("playIntroBtn", ()=>{
     let parts = [session.why];
     (session.terms||[]).forEach(t=>{
-      parts.push(`${t.term}. ${t.def}. For example, ${t.example}.`);
+      parts.push(L(`${t.term}. ${t.def}. For example, ${t.example}.`,`${t.term}. ${t.def}. Por ejemplo, ${t.example}.`));
     });
     return speechFromHTML(parts.join(" "));
   });
@@ -1520,28 +1592,28 @@ function renderExamples(){
   });
   const html = `
   <div class="questbar">
-    <button class="backbtn" id="backBtn">←</button>
+    <button class="backbtn" id="backBtn" aria-label="${L("Back","Atrás")}">←</button>
     <div class="region-badge" style="--cat:${catColor}">${catIcon}</div>
     <div class="qtitle">
       <h2 aria-level="1">${session.title}</h2>
-      <div class="sub">Example ${session.exPos+1} of ${session.examples.length}</div>
+      <div class="sub">${L(`Example ${session.exPos+1} of ${session.examples.length}`,`Ejemplo ${session.exPos+1} de ${session.examples.length}`)}</div>
     </div>
     ${statsBarHTML()}
   </div>
   <div class="dots">${dots}</div>
   <div class="card">
     <div class="tag-row">
-      <div class="tag" style="--cat:${catColor}">Worked Example</div>
-      <button class="play-btn" id="playExampleBtn" title="Read this example aloud">🔊</button>
+      <div class="tag" style="--cat:${catColor}">${L("Worked Example","Ejemplo resuelto")}</div>
+      <button class="play-btn" id="playExampleBtn" title="${L("Read this example aloud","Lee este ejemplo en voz alta")}">🔊</button>
     </div>
     <div class="example-card">
       <div class="ex-title">${ex.title}</div>
       ${ex.lines.map(l=>`<div class="ex-line">${renderStepText(l)}</div>`).join("")}
     </div>
     <div class="btn-row">
-      <button class="btn btn-primary" id="nextExBtn">${isLast ? "Start Guided Practice →" : "Next Example →"}</button>
+      <button class="btn btn-primary" id="nextExBtn">${isLast ? L("Start Guided Practice →","Empezar la práctica guiada →") : L("Next Example →","Siguiente ejemplo →")}</button>
     </div>
-    ${!isLast ? `<button class="btn-link" id="skipExamplesBtn">Skip remaining examples → go straight to practice</button>` : ""}
+    ${!isLast ? `<button class="btn-link" id="skipExamplesBtn">${L("Skip remaining examples → go straight to practice","Saltar los ejemplos que faltan → ir directo a practicar")}</button>` : ""}
   </div>`;
   app.innerHTML = '<div class="view-enter">' + html + '</div>';
   document.getElementById("backBtn").addEventListener("click", backHome);
@@ -1559,15 +1631,15 @@ function renderDictionary(){
         <div class="term-row">
           <div class="term-name">${t.term}</div>
           <div class="term-def">${t.def}</div>
-          ${t.example ? `<div class="term-ex">Example: ${t.example}</div>` : ""}
+          ${t.example ? `<div class="term-ex">${L("Example","Ejemplo")}: ${t.example}</div>` : ""}
         </div>`).join("")}
     </div>`).join("");
   const html = `
   <div class="questbar">
-    <button class="backbtn" id="backBtn">←</button>
+    <button class="backbtn" id="backBtn" aria-label="${L("Back","Atrás")}">←</button>
     <div class="qtitle">
-      <h2 aria-level="1">Terminology &amp; Formulas</h2>
-      <div class="sub">A quick reference — not graded</div>
+      <h2 aria-level="1">${L("Terminology &amp; Formulas","Términos y fórmulas")}</h2>
+      <div class="sub">${L("A quick reference — not graded","Una referencia rápida — no se califica")}</div>
     </div>
     ${statsBarHTML()}
   </div>
@@ -1586,12 +1658,12 @@ function renderQuest(){
   if(crossTopic){
     catLabel = TOPICS.find(t=>t.id===p.topicId).title;
   }else if(p.kind==="guided"){
-    catLabel = `Guided Practice ${session.pos+1} of ${session.guidedCount}`;
+    catLabel = L(`Guided Practice ${session.pos+1} of ${session.guidedCount}`,`Práctica guiada ${session.pos+1} de ${session.guidedCount}`);
   }else if(p.scaffold){
-    catLabel = "Warm-up · doesn't count against you";
+    catLabel = L("Warm-up · doesn't count against you","Calentamiento · no cuenta en tu contra");
   }else{
     const n = session.problems.slice(session.guidedCount, session.pos+1).filter(x=>!x.scaffold).length;
-    catLabel = `Problem ${n} of ${session.practiceCount}`;
+    catLabel = L(`Problem ${n} of ${session.practiceCount}`,`Problema ${n} de ${session.practiceCount}`);
   }
 
   let dots = "";
@@ -1605,7 +1677,7 @@ function renderQuest(){
 
   let html = `
   <div class="questbar">
-    <button class="backbtn" id="backBtn">←</button>
+    <button class="backbtn" id="backBtn" aria-label="${L("Back","Atrás")}">←</button>
     <div class="region-badge" style="--cat:${catColor}">${catIcon}</div>
     <div class="qtitle">
       <h2 aria-level="1">${session.title}</h2>
@@ -1616,7 +1688,7 @@ function renderQuest(){
   <div class="dots">${dots}</div>`;
 
   if(p.scaffold){
-    html += `<div class="why-strip warmup-note"><span class="star">🌱</span><span>Let's try a warm-up first. The rule and first step are shown to help.</span></div>`;
+    html += `<div class="why-strip warmup-note"><span class="star">🌱</span><span>${L("Let's try a warm-up first. The rule and first step are shown to help.","Probemos primero un calentamiento. Te mostramos la regla y el primer paso para ayudarte.")}</span></div>`;
   }else if(session.mode==="topic"){
     html += `<div class="why-strip"><span class="star">★</span><span>${session.why}</span></div>`;
   }
@@ -1629,13 +1701,13 @@ function renderQuest(){
     <div class="tag-row">
       <div class="tag" style="--cat:${catColor}">${catLabel}</div>
       <div class="tag-actions">
-        ${hasTerms ? `<button class="play-btn" id="viewTermsBtn" aria-pressed="${!!session.termsOpen}" title="Key terms &amp; formulas for this topic">📘</button>` : ""}
-        ${hasExamples ? `<button class="play-btn" id="viewExamplesBtn" aria-pressed="${!!session.peekOpen}" title="Stuck? View the worked examples">📖</button>` : ""}
+        ${hasTerms ? `<button class="play-btn" id="viewTermsBtn" aria-pressed="${!!session.termsOpen}" title="${L("Key terms &amp; formulas for this topic","Términos clave y fórmulas de este tema")}">📘</button>` : ""}
+        ${hasExamples ? `<button class="play-btn" id="viewExamplesBtn" aria-pressed="${!!session.peekOpen}" title="${L("Stuck? View the worked examples","¿Atascado? Mira los ejemplos resueltos")}">📖</button>` : ""}
       </div>
     </div>
     <div class="qtext-row">
       <div class="qtext">${renderStepText(p.q)}</div>
-      <button class="play-btn" id="playQBtn" title="Read this question aloud">🔊</button>
+      <button class="play-btn" id="playQBtn" title="${L("Read this question aloud","Lee esta pregunta en voz alta")}">🔊</button>
     </div>`;
 
   const usesBlanks = p.kind==="guided" && p.blanks && p.blanks.length;
@@ -1645,7 +1717,7 @@ function renderQuest(){
     html += `<div class="reveal-enter">`;
     html += `
     <div class="feedback ${ok ? "feedback-good feedback-flash-good" : "feedback-bad feedback-flash-bad"}">
-      ${ok ? "✅ Correct!" : (usesBlanks ? "🤔 Let's check each step:" : "🤔 Not quite — take a look:")}
+      ${ok ? L("✅ Correct!","✅ ¡Correcto!") : (usesBlanks ? L("🤔 Let's check each step:","🤔 Revisemos cada paso:") : L("🤔 Not quite — take a look:","🤔 Casi — mira esto:"))}
     </div>`;
     if(usesBlanks && session.blankAnswers){
       html += `<div class="blank-sheet reveal">`;
@@ -1670,27 +1742,27 @@ function renderQuest(){
       });
       html += `</div>`;
     }else{
-      html += `<div class="you-typed">You typed: <strong>${escapeHtml(session.autoResult.userText)}</strong></div>`;
+      html += `<div class="you-typed">${L("You typed","Escribiste")}: <strong>${escapeHtml(session.autoResult.userText)}</strong></div>`;
       if(!session.autoResult.matched && session.diagnosis) html += `<div class="mistake-note">💬 ${session.diagnosis.message}</div>`;
     }
-    html += `<div class="answer-box"><span class="lbl">Answer</span>${p.a}</div>`;
+    html += `<div class="answer-box"><span class="lbl">${L("Answer","Respuesta")}</span>${p.a}</div>`;
     if(session.autoResult.showHowTo && p.steps && p.steps.length){
       html += `
       <div class="howto-box">
-        <span class="lbl">📘 Step-by-step breakdown</span>
+        <span class="lbl">📘 ${L("Step-by-step breakdown","Desglose paso a paso")}</span>
         <ol class="howto-steps">${p.steps.map(s=>`<li>${renderStepText(s)}</li>`).join("")}</ol>
       </div>`;
     }
     if(ok){
       html += `
       <div class="btn-row">
-        <button class="btn btn-primary" id="nextBtn">Next →</button>
+        <button class="btn btn-primary" id="nextBtn">${L("Next →","Siguiente →")}</button>
       </div>`;
     }else{
       html += `
       <div class="btn-row">
-        <button class="btn btn-bad" id="nextBtn">Continue →</button>
-        <button class="btn btn-ghost" id="overrideBtn">Actually, that's right ✔︎</button>
+        <button class="btn btn-bad" id="nextBtn">${L("Continue →","Continuar →")}</button>
+        <button class="btn btn-ghost" id="overrideBtn">${L("Actually, that's right ✔︎","En realidad, está bien ✔︎")}</button>
       </div>`;
     }
     html += `</div>`;
@@ -1698,18 +1770,18 @@ function renderQuest(){
     const markedResult = session.results[session.pos];
     const flashCls = markedResult==="good" ? " box-flash-good" : markedResult==="bad" ? " box-flash-bad" : "";
     html += `<div class="reveal-enter">`;
-    html += `<div class="answer-box${flashCls}"><span class="lbl">Answer</span>${p.a}</div>`;
+    html += `<div class="answer-box${flashCls}"><span class="lbl">${L("Answer","Respuesta")}</span>${p.a}</div>`;
     if(p.steps && p.steps.length){
       html += `
       <div class="howto-box">
-        <span class="lbl">📘 Step-by-step breakdown</span>
+        <span class="lbl">📘 ${L("Step-by-step breakdown","Desglose paso a paso")}</span>
         <ol class="howto-steps">${p.steps.map(s=>`<li>${renderStepText(s)}</li>`).join("")}</ol>
       </div>`;
     }
     html += `
     <div class="btn-row">
-      <button class="btn btn-good" id="gotIt">✅ Got it right</button>
-      <button class="btn btn-bad" id="missedIt">❌ Missed it</button>
+      <button class="btn btn-good" id="gotIt">${L("✅ Got it right","✅ Lo hice bien")}</button>
+      <button class="btn btn-bad" id="missedIt">${L("❌ Missed it","❌ Fallé")}</button>
     </div>`;
     html += `</div>`;
   }else if(usesBlanks){
@@ -1724,7 +1796,7 @@ function renderQuest(){
           const opts = step.options && step.options[pi];
           if(opts){
             row += `<select class="blankSelect" data-si="${si}" data-bi="${pi}">
-              <option value=""${draftVal?"":" selected"}>Choose…</option>
+              <option value=""${draftVal?"":" selected"}>${L("Choose…","Elige…")}</option>
               ${opts.map(o=>`<option value="${escapeHtml(o)}"${o===draftVal?" selected":""}>${escapeHtml(o)}</option>`).join("")}
             </select>`;
           }else{
@@ -1737,28 +1809,28 @@ function renderQuest(){
     });
     html += `</div>`;
     html += `
-    <div class="symbol-row">${SYMBOLS.map(s=>`<button type="button" class="symBtn${s.label.includes(" ")?" symBtnWide":""}" data-sym="${s.insert}" title="${s.title}">${escapeHtml(s.label)}</button>`).join("")}</div>
-    <div class="btn-row"><button class="btn btn-primary" id="checkBlanksBtn">Check</button></div>
-    <button class="btn-link" id="skipBtn">I'd rather just reveal the answer</button>
-    ${p.kind==="guided" ? `<button class="btn-link" id="skipGuidedBtn">Skip guided practice → start the problems</button>` : ""}`;
+    <div class="symbol-row">${SYMBOLS.map(s=>`<button type="button" class="symBtn${s.label.includes(" ")?" symBtnWide":""}" data-sym="${s.insert}" title="${L(s.title,s.es)}">${escapeHtml(L(s.label,s.esLabel||s.label))}</button>`).join("")}</div>
+    <div class="btn-row"><button class="btn btn-primary" id="checkBlanksBtn">${L("Check","Comprobar")}</button></div>
+    <button class="btn-link" id="skipBtn">${L("I'd rather just reveal the answer","Prefiero ver la respuesta directamente")}</button>
+    ${p.kind==="guided" ? `<button class="btn-link" id="skipGuidedBtn">${L("Skip guided practice → start the problems","Saltar la práctica guiada → empezar los problemas")}</button>` : ""}`;
   }else{
     if(p.kind==="guided" && p.steps && p.steps.length){
-      html += `<div class="hint-box"><span class="lbl">💡 Hint</span>${renderStepText(p.steps[0])}</div>`;
+      html += `<div class="hint-box"><span class="lbl">💡 ${L("Hint","Pista")}</span>${renderStepText(p.steps[0])}</div>`;
     }
     if(session.retryFlash){
-      const note = session.diagnosis ? session.diagnosis.message : "Give it one more try!";
-      html += `<div class="feedback feedback-bad">🤔 Not quite. ${note}</div>`;
+      const note = session.diagnosis ? session.diagnosis.message : L("Give it one more try!","¡Inténtalo una vez más!");
+      html += `<div class="feedback feedback-bad">🤔 ${L("Not quite.","Casi.")} ${note}</div>`;
     }
     if(p.kind==="practice" && session.mode!=="placement") html += hintBoxHTML(p);
     html += `
     <div class="answer-input-row">
-      <input type="text" id="answerInput" placeholder="Type your answer here…" autocomplete="off" autocapitalize="off" spellcheck="false" value="${escapeHtml(session.draftAnswer||"")}">
-      <button class="btn btn-primary" id="checkBtn">Check</button>
+      <input type="text" id="answerInput" placeholder="${L("Type your answer here…","Escribe tu respuesta aquí…")}" autocomplete="off" autocapitalize="off" spellcheck="false" value="${escapeHtml(session.draftAnswer||"")}">
+      <button class="btn btn-primary" id="checkBtn">${L("Check","Comprobar")}</button>
     </div>
-    <div class="symbol-row">${SYMBOLS.map(s=>`<button type="button" class="symBtn${s.label.includes(" ")?" symBtnWide":""}" data-sym="${s.insert}" title="${s.title}">${escapeHtml(s.label)}</button>`).join("")}</div>
+    <div class="symbol-row">${SYMBOLS.map(s=>`<button type="button" class="symBtn${s.label.includes(" ")?" symBtnWide":""}" data-sym="${s.insert}" title="${L(s.title,s.es)}">${escapeHtml(L(s.label,s.esLabel||s.label))}</button>`).join("")}</div>
     ${p.kind==="practice" && session.mode!=="placement" ? hintButtonHTML(p) : ""}
-    <button class="btn-link" id="skipBtn">${session.mode==="placement" ? "I don't know this one" : "I'd rather just reveal the answer"}</button>
-    ${p.kind==="guided" ? `<button class="btn-link" id="skipGuidedBtn">Skip guided practice → start the problems</button>` : ""}`;
+    <button class="btn-link" id="skipBtn">${session.mode==="placement" ? L("I don't know this one","No sé esta") : L("I'd rather just reveal the answer","Prefiero ver la respuesta directamente")}</button>
+    ${p.kind==="guided" ? `<button class="btn-link" id="skipGuidedBtn">${L("Skip guided practice → start the problems","Saltar la práctica guiada → empezar los problemas")}</button>` : ""}`;
   }
   html += `</div>`;
 
@@ -1769,10 +1841,10 @@ function renderQuest(){
     html += `
     <div class="card inline-ref reveal-enter">
       <div class="tag-row">
-        <div class="tag" style="--cat:${catColor}">📘 Key Terms &amp; Formulas</div>
+        <div class="tag" style="--cat:${catColor}">📘 ${L("Key Terms &amp; Formulas","Términos clave y fórmulas")}</div>
         <div class="tag-actions">
-          <button class="play-btn" id="playTermsBtn" title="Read these aloud">🔊</button>
-          <button class="play-btn" id="closeTermsInlineBtn" title="Close">✕</button>
+          <button class="play-btn" id="playTermsBtn" title="${L("Read these aloud","Léelos en voz alta")}">🔊</button>
+          <button class="play-btn" id="closeTermsInlineBtn" title="${L("Close","Cerrar")}" aria-label="${L("Close","Cerrar")}">✕</button>
         </div>
       </div>
       <div class="terms-box">
@@ -1780,7 +1852,7 @@ function renderQuest(){
           <div class="term-row">
             <div class="term-name">${t.term}</div>
             <div class="term-def">${t.def}</div>
-            ${t.example ? `<div class="term-ex">Example: ${t.example}</div>` : ""}
+            ${t.example ? `<div class="term-ex">${L("Example","Ejemplo")}: ${t.example}</div>` : ""}
           </div>`).join("")}
       </div>
     </div>`;
@@ -1792,10 +1864,10 @@ function renderQuest(){
     html += `
     <div class="card inline-ref reveal-enter">
       <div class="tag-row">
-        <div class="tag" style="--cat:${catColor}">📖 Worked Example ${session.peekPos+1} of ${session.examples.length}</div>
+        <div class="tag" style="--cat:${catColor}">📖 ${L(`Worked Example ${session.peekPos+1} of ${session.examples.length}`,`Ejemplo resuelto ${session.peekPos+1} de ${session.examples.length}`)}</div>
         <div class="tag-actions">
-          <button class="play-btn" id="playPeekBtn" title="Read this example aloud">🔊</button>
-          <button class="play-btn" id="closeExamplesInlineBtn" title="Close">✕</button>
+          <button class="play-btn" id="playPeekBtn" title="${L("Read this example aloud","Lee este ejemplo en voz alta")}">🔊</button>
+          <button class="play-btn" id="closeExamplesInlineBtn" title="${L("Close","Cerrar")}" aria-label="${L("Close","Cerrar")}">✕</button>
         </div>
       </div>
       <div class="example-card">
@@ -1803,8 +1875,8 @@ function renderQuest(){
         ${ex.lines.map(l=>`<div class="ex-line">${renderStepText(l)}</div>`).join("")}
       </div>
       <div class="btn-row">
-        ${!isFirst ? `<button class="btn btn-ghost" id="peekPrevBtn">← Prev</button>` : ""}
-        ${!isLast ? `<button class="btn btn-ghost" id="peekNextBtn">Next →</button>` : ""}
+        ${!isFirst ? `<button class="btn btn-ghost" id="peekPrevBtn">${L("← Prev","← Anterior")}</button>` : ""}
+        ${!isLast ? `<button class="btn btn-ghost" id="peekNextBtn">${L("Next →","Siguiente →")}</button>` : ""}
       </div>
     </div>`;
   }
@@ -1896,29 +1968,29 @@ function renderQuest(){
 // for the student, not a parsing change, so it can't affect how answers are
 // checked.
 const DIGIT_SYMBOLS = ["0","1","2","3","4","5","6","7","8","9"].map(d=>(
-  {label:d, insert:d, title:`Type ${d}`}
+  {label:d, insert:d, title:`Type ${d}`, es:`Escribe ${d}`}
 ));
 const SYMBOLS = [
   ...DIGIT_SYMBOLS,
-  {label:"x", insert:"x", title:"The letter x"},
-  {label:"=", insert:"=", title:"Equals"},
-  {label:"+", insert:"+", title:"Plus"},
-  {label:"− subtract", insert:"−", title:"Subtraction — goes BETWEEN two things, e.g. x² − 6 (x squared, then subtract 6)"},
-  {label:"(−) negative", insert:"-", title:"Negative sign — goes right in FRONT of one number, e.g. a negative exponent like x^-3, or a negative answer like x = -5"},
-  {label:"×", insert:"×", title:"Times"},
-  {label:"÷", insert:"÷", title:"Divide"},
-  {label:"/", insert:"/", title:"Fraction bar — e.g. 1/x^3"},
-  {label:".", insert:".", title:"Decimal point — e.g. 0.5"},
-  {label:"(", insert:"(", title:"Open parenthesis — e.g. (x+2)^2"},
-  {label:")", insert:")", title:"Close parenthesis"},
-  {label:"√", insert:"√", title:"Square root"},
-  {label:"^", insert:"^", title:"Exponent — e.g. x^2 for x squared. For a negative exponent use the (−) negative button right after the ^, e.g. x^-3. To subtract something AFTER an exponent, use the − subtract button instead, e.g. x^2-6"},
-  {label:"±", insert:"±", title:"Plus or minus"},
-  {label:"<", insert:"<", title:"Less than"},
-  {label:">", insert:">", title:"Greater than"},
-  {label:"≤", insert:"≤", title:"Less than or equal"},
-  {label:"≥", insert:"≥", title:"Greater than or equal"},
-  {label:"≠", insert:"≠", title:"Not equal"},
+  {label:"x", insert:"x", title:"The letter x", es:"La letra x"},
+  {label:"=", insert:"=", title:"Equals", es:"Igual"},
+  {label:"+", insert:"+", title:"Plus", es:"Más"},
+  {label:"− subtract", esLabel:"− restar", insert:"−", title:"Subtraction — goes BETWEEN two things, e.g. x² − 6 (x squared, then subtract 6)", es:"Resta — va ENTRE dos cosas, p. ej., x² − 6 (x al cuadrado, y luego resta 6)"},
+  {label:"(−) negative", esLabel:"(−) negativo", insert:"-", title:"Negative sign — goes right in FRONT of one number, e.g. a negative exponent like x^-3, or a negative answer like x = -5", es:"Signo negativo — va justo ANTES de un número, p. ej., un exponente negativo como x^-3, o una respuesta negativa como x = -5"},
+  {label:"×", insert:"×", title:"Times", es:"Por"},
+  {label:"÷", insert:"÷", title:"Divide", es:"Dividido entre"},
+  {label:"/", insert:"/", title:"Fraction bar — e.g. 1/x^3", es:"Barra de fracción — p. ej., 1/x^3"},
+  {label:".", insert:".", title:"Decimal point — e.g. 0.5", es:"Punto decimal — p. ej., 0.5"},
+  {label:"(", insert:"(", title:"Open parenthesis — e.g. (x+2)^2", es:"Abrir paréntesis — p. ej., (x+2)^2"},
+  {label:")", insert:")", title:"Close parenthesis", es:"Cerrar paréntesis"},
+  {label:"√", insert:"√", title:"Square root", es:"Raíz cuadrada"},
+  {label:"^", insert:"^", title:"Exponent — e.g. x^2 for x squared. For a negative exponent use the (−) negative button right after the ^, e.g. x^-3. To subtract something AFTER an exponent, use the − subtract button instead, e.g. x^2-6", es:"Exponente — p. ej., x^2 para x al cuadrado. Para un exponente negativo usa el botón (−) negativo justo después del ^, p. ej., x^-3. Para restar algo DESPUÉS de un exponente, usa el botón − restar, p. ej., x^2-6"},
+  {label:"±", insert:"±", title:"Plus or minus", es:"Más o menos"},
+  {label:"<", insert:"<", title:"Less than", es:"Menor que"},
+  {label:">", insert:">", title:"Greater than", es:"Mayor que"},
+  {label:"≤", insert:"≤", title:"Less than or equal", es:"Menor o igual que"},
+  {label:"≥", insert:"≥", title:"Greater than or equal", es:"Mayor o igual que"},
+  {label:"≠", insert:"≠", title:"Not equal", es:"Distinto de"},
 ];
 
 /* ===================== READ ALOUD (TEXT-TO-SPEECH) ===================== */
@@ -1926,13 +1998,13 @@ let scratchDiv = null;
 function speechFromHTML(html){
   // Replace a ###GRAPH:...### marker with its caption (or a generic phrase) — it can't be read aloud as-is.
   let s = String(html).replace(/###GRAPH:[a-z]+;[^;#]*;?([^#]*)###/g, (m, caption) => {
-    return caption && caption.trim() ? ` the graph showing ${caption.trim()} ` : " the graph shown ";
+    return caption && caption.trim() ? L(` the graph showing ${caption.trim()} `,` la gráfica que muestra ${caption.trim()} `) : L(" the graph shown "," la gráfica mostrada ");
   });
   // Strip any other visual markers that might sneak into spoken text.
   s = s.replace(/###DP:[^#]*###/g, " ").replace(/###BAL:[^#]*###/g, " ");
   // Replace stacked-fraction spans with "X over Y" before stripping tags.
   s = s.replace(/<span class=['"]frac['"]>\s*<span class=['"]frac-num['"]>([\s\S]*?)<\/span>\s*<span class=['"]frac-den['"]>([\s\S]*?)<\/span>\s*<\/span>/g,
-    (m, num, den) => ` ${stripTags(num)} over ${stripTags(den)} `);
+    (m, num, den) => ` ${stripTags(num)} ${L("over","sobre")} ${stripTags(den)} `);
   // Strip any remaining tags and decode entities via a scratch element.
   if(!scratchDiv) scratchDiv = document.createElement("div");
   scratchDiv.innerHTML = s;
@@ -1946,38 +2018,42 @@ function stripTags(html){
 }
 function normalizeMathForSpeech(text){
   let t = String(text);
+  const es = getLang()==="es";
   // Superscripts (already-rendered unicode) and caret notation.
-  const SUP_WORDS = {"²":"squared","³":"cubed","⁴":"to the 4th power","⁵":"to the 5th power",
-    "⁶":"to the 6th power","⁷":"to the 7th power","⁸":"to the 8th power","⁹":"to the 9th power"};
+  const SUP_WORDS = es
+    ? {"²":"al cuadrado","³":"al cubo","⁴":"a la cuarta potencia","⁵":"a la quinta potencia",
+       "⁶":"a la sexta potencia","⁷":"a la séptima potencia","⁸":"a la octava potencia","⁹":"a la novena potencia"}
+    : {"²":"squared","³":"cubed","⁴":"to the 4th power","⁵":"to the 5th power",
+       "⁶":"to the 6th power","⁷":"to the 7th power","⁸":"to the 8th power","⁹":"to the 9th power"};
   t = t.replace(/[²³⁴⁵⁶⁷⁸⁹]/g, ch => " " + SUP_WORDS[ch] + " ");
   t = t.replace(/\^(\d+)/g, (m, n) => {
-    if(n==="2") return " squared ";
-    if(n==="3") return " cubed ";
-    return ` to the ${n}th power `;
+    if(n==="2") return L(" squared "," al cuadrado ");
+    if(n==="3") return L(" cubed "," al cubo ");
+    return L(` to the ${n}th power `,` a la potencia ${n} `);
   });
-  t = t.replace(/\^(\w+)/g, " to the power of $1 ");
+  t = t.replace(/\^(\w+)/g, L(" to the power of $1 "," a la potencia $1 "));
   // Roots.
-  t = t.replace(/√/g, " the square root of ");
+  t = t.replace(/√/g, L(" the square root of "," la raíz cuadrada de "));
   // Absolute value bars |x|
-  t = t.replace(/\|([^|]+)\|/g, " the absolute value of $1 ");
+  t = t.replace(/\|([^|]+)\|/g, L(" the absolute value of $1 "," el valor absoluto de $1 "));
   // Plus/minus.
-  t = t.replace(/±/g, " plus or minus ");
+  t = t.replace(/±/g, L(" plus or minus "," más o menos "));
   // Comparisons.
-  t = t.replace(/≤/g, " is less than or equal to ");
-  t = t.replace(/≥/g, " is greater than or equal to ");
-  t = t.replace(/≠/g, " is not equal to ");
-  t = t.replace(/</g, " is less than ");
-  t = t.replace(/>/g, " is greater than ");
+  t = t.replace(/≤/g, L(" is less than or equal to "," es menor o igual que "));
+  t = t.replace(/≥/g, L(" is greater than or equal to "," es mayor o igual que "));
+  t = t.replace(/≠/g, L(" is not equal to "," es distinto de "));
+  t = t.replace(/</g, L(" is less than "," es menor que "));
+  t = t.replace(/>/g, L(" is greater than "," es mayor que "));
   // Times/divide/minus variants.
-  t = t.replace(/×/g, " times ");
-  t = t.replace(/÷/g, " divided by ");
-  t = t.replace(/[−–—]/g, " minus ");
+  t = t.replace(/[×·]/g, L(" times "," por "));
+  t = t.replace(/÷/g, L(" divided by "," entre "));
+  t = t.replace(/[−–—]/g, L(" minus "," menos "));
   // Equals / arrow.
-  t = t.replace(/→/g, " leads to ");
-  t = t.replace(/=/g, " equals ");
+  t = t.replace(/→/g, L(" leads to "," da "));
+  t = t.replace(/=/g, L(" equals "," es igual a "));
   // Money and percent.
-  t = t.replace(/\$(\d[\d,.]*)/g, "$1 dollars ");
-  t = t.replace(/(\d)%/g, "$1 percent");
+  t = t.replace(/\$(\d[\d,.]*)/g, L("$1 dollars ","$1 dólares "));
+  t = t.replace(/(\d)\s?%/g, L("$1 percent","$1 por ciento"));
   // Collapse whitespace.
   t = t.replace(/\s+/g, " ").trim();
   return t;
@@ -1992,8 +2068,9 @@ function refreshVoices(){
   if(!window.speechSynthesis) return;
   cachedVoices = speechSynthesis.getVoices() || [];
   if(!cachedVoices.length){ bestVoice = null; return; }
-  const englishVoices = cachedVoices.filter(v => /^en(-|_|$)/i.test(v.lang));
-  const pool = englishVoices.length ? englishVoices : cachedVoices;
+  const wanted = getLang()==="es" ? /^es(-|_|$)/i : /^en(-|_|$)/i;
+  const langVoices = cachedVoices.filter(v => wanted.test(v.lang));
+  const pool = langVoices.length ? langVoices : cachedVoices;
   const rank = v => {
     const n = v.name.toLowerCase();
     let score = 0;
@@ -2006,6 +2083,12 @@ function refreshVoices(){
     if(/^microsoft (aria|jenny|guy)/.test(n)) score += 30;
     if(/female/.test(n)) score += 2;
     if(v.lang.toLowerCase()==="en-us") score += 5;
+    if(getLang()==="es"){
+      const vl = v.lang.toLowerCase().replace("_","-");
+      if(vl==="es-do") score += 12;                               // Dominican Spanish, when the device has it
+      else if(vl==="es-us" || vl==="es-419" || vl==="es-mx") score += 8; // closest Latin American voices
+      if(/paulina|monica|sabina|jorge|diego|helena|laura/.test(n)) score += 4;
+    }
     if(v.localService===false) score += 3; // cloud voices are often higher quality
     return score;
   };
@@ -2032,6 +2115,7 @@ function wireSpeakButton(btnId, textFn){
     utter.rate = 0.92;
     utter.pitch = 1.03;
     if(bestVoice) utter.voice = bestVoice;
+    utter.lang = bestVoice ? bestVoice.lang : (getLang()==="es" ? "es-US" : "en-US");
     utter.onend = ()=>{ btn.textContent = "🔊"; };
     utter.onerror = ()=>{ btn.textContent = "🔊"; };
     btn.textContent = "⏸";
@@ -2190,26 +2274,26 @@ function renderPlacementSummary(){
     if(!r) return "";
     const lv = PLACEMENT_LEVEL[r.level] || PLACEMENT_LEVEL.needs;
     return `<div class="pl-row lvl-${r.level}">
-      <span class="pl-name"><span class="region-icon" style="--cat:${CAT[cat].color}">${CAT[cat].icon}</span>${CAT[cat].label}</span>
-      <span class="pl-level">${lv.icon} ${lv.label} <span class="pl-score">${r.correct}/${r.total}</span></span></div>`;
+      <span class="pl-name"><span class="region-icon" style="--cat:${CAT[cat].color}">${CAT[cat].icon}</span>${L(CAT[cat].label,CAT[cat].es)}</span>
+      <span class="pl-level">${lv.icon} ${L(lv.label,lv.es)} <span class="pl-score">${r.correct}/${r.total}</span></span></div>`;
   }).join("");
   app.innerHTML = `
   <div class="view-enter">
   <div class="topbar">
     <div class="brand">
       <div class="mark">${avatarIcon(state.avatar)}</div>
-      <div><h1>Algebra Quest</h1><p>Check-in complete</p></div>
+      <div><h1>Algebra Quest</h1><p>${L("Check-in complete","Chequeo completado")}</p></div>
     </div>
     ${statsBarHTML()}
   </div>
   <div class="summary placement-summary">
     <div style="font-size:46px">🧭</div>
-    <div class="epic-sub">Here's your map</div>
-    <div class="big">${recommended ? `Nice work${nameGreeting()}! A good place to start is <strong>${recommended.title}</strong>.` : `Wow${nameGreeting()}, you're solid everywhere! Try a Boss Battle.`}</div>
+    <div class="epic-sub">${L("Here's your map","Este es tu mapa")}</div>
+    <div class="big">${recommended ? L(`Nice work${nameGreeting()}! A good place to start is <strong>${recommended.title}</strong>.`,`¡Buen trabajo${nameGreeting()}! Un buen lugar para empezar es <strong>${recommended.title}</strong>.`) : L(`Wow${nameGreeting()}, you're solid everywhere! Try a Boss Battle.`,`¡Wow${nameGreeting()}, dominas todo! Prueba una Batalla de jefe.`)}</div>
     <div class="pl-list">${rows}</div>
     <div class="btn-row">
-      <button class="btn btn-ghost" id="homeBtn">Back to map</button>
-      ${recommended ? `<button class="btn btn-primary" id="startHereBtn">Start: ${recommended.title} →</button>` : ""}
+      <button class="btn btn-ghost" id="homeBtn">${L("Back to map","Volver al mapa")}</button>
+      ${recommended ? `<button class="btn btn-primary" id="startHereBtn">${L("Start","Empezar")}: ${recommended.title} →</button>` : ""}
     </div>
   </div>
   </div>`;
@@ -2222,12 +2306,11 @@ function renderSummary(){
   const total = session.problems.length;
   const correct = session.correctCount;
   const pct = Math.round((correct/total)*100);
-  let sub = "Nice work!";
-  let msg = "One step closer to Math Mastery!!";
-  if(pct===100){ sub = "FLAWLESS RUN"; msg = `Congratulations${nameGreeting()}! You just leveled up in Math Mastery!! 🎉`; }
-  else if(pct>=80){ sub = "Great job"; msg = `Way to go${nameGreeting()} — one step closer to Math Mastery!!`; }
-  else if(pct>=50){ sub = "Nice work"; msg = `Keep it up${nameGreeting()} — you're climbing toward Math Mastery!!`; }
-  else { sub = "Good effort"; msg = `Every lap makes you stronger${nameGreeting()} — onward to Math Mastery!!`; }
+  let sub, msg;
+  if(pct===100){ sub = L("FLAWLESS RUN","PARTIDA PERFECTA"); msg = L(`Congratulations${nameGreeting()}! You just leveled up in Math Mastery!! 🎉`,`¡Felicidades${nameGreeting()}! ¡Acabas de subir de nivel en el dominio de las matemáticas! 🎉`); }
+  else if(pct>=80){ sub = L("Great job","Excelente trabajo"); msg = L(`Way to go${nameGreeting()} — one step closer to Math Mastery!!`,`¡Así se hace${nameGreeting()} — un paso más cerca de dominar las matemáticas!`); }
+  else if(pct>=50){ sub = L("Nice work","Buen trabajo"); msg = L(`Keep it up${nameGreeting()} — you're climbing toward Math Mastery!!`,`Sigue así${nameGreeting()} — vas subiendo hacia el dominio de las matemáticas!`); }
+  else { sub = L("Good effort","Buen esfuerzo"); msg = L(`Every lap makes you stronger${nameGreeting()} — onward to Math Mastery!!`,`Cada vuelta te hace más fuerte${nameGreeting()} — ¡adelante hacia el dominio de las matemáticas!`); }
 
   const nextTopic = session.mode==="topic" ? TOPICS.find(t=>t.id===session.topicId+1) : null;
 
@@ -2236,7 +2319,7 @@ function renderSummary(){
   <div class="topbar">
     <div class="brand">
       <div class="mark">${avatarIcon(state.avatar)}</div>
-      <div><h1>Algebra Quest</h1><p>${session.title} complete</p></div>
+      <div><h1>Algebra Quest</h1><p>${L(`${session.title} complete`,`${session.title} completado`)}</p></div>
     </div>
     ${statsBarHTML()}
   </div>
@@ -2244,15 +2327,15 @@ function renderSummary(){
     <div style="font-size:46px">${pct===100 ? "🏆" : "✨"}</div>
     <div class="epic-sub">${sub}</div>
     <div class="big epic">${msg}</div>
-    ${session.dailyBonus ? `<div class="daily-bonus">⭐ Daily Challenge bonus: +${session.dailyBonus} XP</div>` : ""}
+    ${session.dailyBonus ? `<div class="daily-bonus">⭐ ${L("Daily Challenge bonus","Bono del Reto diario")}: +${session.dailyBonus} XP</div>` : ""}
     <div class="stats-row">
-      <div><div class="n">${correct}/${total}</div><div class="l">Correct</div></div>
-      <div><div class="n">+${session.xpEarned!==undefined ? session.xpEarned : correct*10+(total-correct)*2}</div><div class="l">XP earned</div></div>
-      <div><div class="n">${state.bestStreak}</div><div class="l">Best streak</div></div>
+      <div><div class="n">${correct}/${total}</div><div class="l">${L("Correct","Correctas")}</div></div>
+      <div><div class="n">+${session.xpEarned!==undefined ? session.xpEarned : correct*10+(total-correct)*2}</div><div class="l">${L("XP earned","XP ganado")}</div></div>
+      <div><div class="n">${state.bestStreak}</div><div class="l">${L("Best streak","Mejor racha")}</div></div>
     </div>
     <div class="btn-row">
-      <button class="btn btn-ghost" id="homeBtn">Back to map</button>
-      ${nextTopic ? `<button class="btn btn-primary" id="nextBtn">Next: ${nextTopic.title} →</button>` : ""}
+      <button class="btn btn-ghost" id="homeBtn">${L("Back to map","Volver al mapa")}</button>
+      ${nextTopic ? `<button class="btn btn-primary" id="nextBtn">${L("Next","Siguiente")}: ${nextTopic.title} →</button>` : ""}
     </div>
   </div>
   </div>`;

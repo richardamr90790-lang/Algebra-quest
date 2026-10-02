@@ -9,6 +9,8 @@ const require = createRequire(import.meta.url);
 const AXE = fs.readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
 const THEMES = ["clean", "midnight", "neon", "forest", "sunset", "pink", "glam", "tide", "holo"]; // the last three are premium shop themes
 const KEY = "algebraQuestState_v1";
+// A11Y_LANG=es runs the screen audits and layout checks in Spanish (the keyboard/touch checks below assert English text).
+const LANG = process.env.A11Y_LANG || "";
 const ok = (c, m) => { console.log(c ? "PASS" : "FAIL", m); if (!c) process.exitCode = 1; };
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
@@ -18,7 +20,7 @@ await page.route(/fonts\.g/, (r) => r.abort());
 
 const NOW = Date.now();
 const rich = (theme) => ({
-  theme, name: "Sam", xp: 450, bestStreak: 9, dailyCount: 3, placementDismissed: false,
+  theme, lang: LANG, name: "Sam", xp: 450, bestStreak: 9, dailyCount: 3, placementDismissed: false,
   mastered: { 19: [0, 1, 2, 3, 4, 5], 17: [0, 1] }, owned: ["rocket", "gold", theme], avatar: "rocket", frame: "gold",
   badges: { "first-answer": NOW, "master-1": NOW }, stats: { answers: 80, correct: 60, reviews: 2 },
   review: { 1: { box: 0, due: "2000-01-01", last: "x", at: 1, ok: false } },
@@ -101,6 +103,11 @@ for (const [w, h] of [[320, 568], [360, 740], [390, 844], [768, 1024]]) {
   ok(bad.length === 0, `${w}px wide: no horizontal scrolling on ${LAYOUT_SCREENS.length} screens${bad.length ? " - " + bad.join(", ") : ""}`);
 }
 await page.setViewportSize({ width: 390, height: 844 });
+if (LANG) {
+  ok(errs.length === 0, "no page errors");
+  await browser.close();
+  process.exit(process.exitCode || 0);
+}
 
 // ---------- touch: buttons are big enough for a finger ----------
 const touch = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });

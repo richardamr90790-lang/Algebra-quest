@@ -28,39 +28,39 @@ const at = (key, n) => (s) => s[key] >= n;
 
 export const ACHIEVEMENTS = [
   // First steps
-  { id: "first-answer", icon: "🌱", title: "First Steps",       desc: "Answer your first question correctly.", test: at("correct", 1) },
-  { id: "correct-100",  icon: "🎯", title: "Sharpshooter",      desc: "Get 100 answers right.",                test: at("correct", 100) },
-  { id: "correct-500",  icon: "🏹", title: "Bullseye",          desc: "Get 500 answers right.",                test: at("correct", 500) },
-  { id: "streak-10",    icon: "🔥", title: "On Fire",           desc: "Get 10 answers right in a row.",        test: at("bestStreak", 10) },
-  { id: "streak-25",    icon: "☄️", title: "Unstoppable",       desc: "Get 25 answers right in a row.",        test: at("bestStreak", 25) },
+  { id: "first-answer", icon: "🌱", title: "First Steps",       desc: "Answer your first question correctly.", es: "Primeros pasos", esDesc: "Responde bien tu primera pregunta.", test: at("correct", 1) },
+  { id: "correct-100",  icon: "🎯", title: "Sharpshooter",      desc: "Get 100 answers right.", es: "Tirador certero", esDesc: "Consigue 100 respuestas correctas.",                test: at("correct", 100) },
+  { id: "correct-500",  icon: "🏹", title: "Bullseye",          desc: "Get 500 answers right.", es: "Dar en el blanco", esDesc: "Consigue 500 respuestas correctas.",                test: at("correct", 500) },
+  { id: "streak-10",    icon: "🔥", title: "On Fire",           desc: "Get 10 answers right in a row.", es: "En llamas", esDesc: "Consigue 10 respuestas correctas seguidas.",        test: at("bestStreak", 10) },
+  { id: "streak-25",    icon: "☄️", title: "Unstoppable",       desc: "Get 25 answers right in a row.", es: "Imparable", esDesc: "Consigue 25 respuestas correctas seguidas.",        test: at("bestStreak", 25) },
   // Mastery
-  { id: "master-1",     icon: "🏆", title: "Topic Master",      desc: "Master your first topic.",              test: at("topicsMastered", 1) },
-  { id: "master-5",     icon: "🥈", title: "Five Down",         desc: "Master 5 topics.",                      test: at("topicsMastered", 5) },
-  { id: "master-10",    icon: "🥇", title: "Ten Strong",        desc: "Master 10 topics.",                     test: at("topicsMastered", 10) },
-  { id: "master-half",  icon: "⛰️", title: "Halfway There",     desc: "Master half of all the topics.",        test: (s) => s.topicsMastered >= Math.ceil(s.totalTopics / 2) },
-  { id: "master-all",   icon: "👑", title: "Algebra Royalty",   desc: "Master every topic.",                   test: (s) => s.totalTopics > 0 && s.topicsMastered >= s.totalTopics },
-  { id: "region-1",     icon: "🗺️", title: "Region Cleared",    desc: "Master every topic in one area.",       test: at("regionsCleared", 1) },
-  { id: "region-4",     icon: "🧭", title: "Four Corners",      desc: "Clear 4 areas.",                        test: at("regionsCleared", 4) },
+  { id: "master-1",     icon: "🏆", title: "Topic Master",      desc: "Master your first topic.", es: "Maestro de un tema", esDesc: "Domina tu primer tema.",              test: at("topicsMastered", 1) },
+  { id: "master-5",     icon: "🥈", title: "Five Down",         desc: "Master 5 topics.", es: "Cinco menos", esDesc: "Domina 5 temas.",                      test: at("topicsMastered", 5) },
+  { id: "master-10",    icon: "🥇", title: "Ten Strong",        desc: "Master 10 topics.", es: "Diez fuertes", esDesc: "Domina 10 temas.",                     test: at("topicsMastered", 10) },
+  { id: "master-half",  icon: "⛰️", title: "Halfway There",     desc: "Master half of all the topics.", es: "A mitad de camino", esDesc: "Domina la mitad de todos los temas.",        test: (s) => s.topicsMastered >= Math.ceil(s.totalTopics / 2) },
+  { id: "master-all",   icon: "👑", title: "Algebra Royalty",   desc: "Master every topic.", es: "Realeza del álgebra", esDesc: "Domina todos los temas.",                   test: (s) => s.totalTopics > 0 && s.topicsMastered >= s.totalTopics },
+  { id: "region-1",     icon: "🗺️", title: "Region Cleared",    desc: "Master every topic in one area.", es: "Región completada", esDesc: "Domina todos los temas de un área.",       test: at("regionsCleared", 1) },
+  { id: "region-4",     icon: "🧭", title: "Four Corners",      desc: "Clear 4 areas.", es: "Cuatro esquinas", esDesc: "Completa 4 áreas.",                        test: at("regionsCleared", 4) },
   // Habits
-  { id: "perfect-1",    icon: "✨", title: "Flawless",          desc: "Finish a topic with every answer typed right, and no hints.", test: at("perfect", 1) },
-  { id: "perfect-5",    icon: "💎", title: "Gem",               desc: "Do that 5 times.",                      test: at("perfect", 5) },
-  { id: "review-1",     icon: "🔁", title: "Remember When",     desc: "Finish a Daily Review.",                test: at("reviews", 1) },
-  { id: "review-10",    icon: "🧠", title: "Memory Master",     desc: "Finish 10 Daily Reviews.",              test: at("reviews", 10) },
-  { id: "checkin",      icon: "📍", title: "Know Your Map",     desc: "Complete the check-in.",                test: (s) => s.checkin },
+  { id: "perfect-1",    icon: "✨", title: "Flawless",          desc: "Finish a topic with every answer typed right, and no hints.", es: "Impecable", esDesc: "Termina un tema con todas las respuestas escritas bien y sin pistas.", test: at("perfect", 1) },
+  { id: "perfect-5",    icon: "💎", title: "Gem",               desc: "Do that 5 times.", es: "Gema", esDesc: "Haz eso 5 veces.",                      test: at("perfect", 5) },
+  { id: "review-1",     icon: "🔁", title: "Remember When",     desc: "Finish a Daily Review.", es: "¿Te acuerdas?", esDesc: "Termina un Repaso diario.",                test: at("reviews", 1) },
+  { id: "review-10",    icon: "🧠", title: "Memory Master",     desc: "Finish 10 Daily Reviews.", es: "Maestro de la memoria", esDesc: "Termina 10 Repasos diarios.",              test: at("reviews", 10) },
+  { id: "checkin",      icon: "📍", title: "Know Your Map",     desc: "Complete the check-in.", es: "Conoce tu mapa", esDesc: "Completa el chequeo.",                test: (s) => s.checkin },
   // Daily Challenge (a running total, never consecutive days)
-  { id: "daily-1",      icon: "⭐", title: "Daily Starter",     desc: "Finish a Daily Challenge.",             test: at("dailies", 1) },
-  { id: "daily-7",      icon: "🗓️", title: "Weekly Warrior",    desc: "Finish 7 Daily Challenges.",            test: at("dailies", 7) },
-  { id: "daily-30",     icon: "🌟", title: "Daily Legend",      desc: "Finish 30 Daily Challenges.",           test: at("dailies", 30) },
+  { id: "daily-1",      icon: "⭐", title: "Daily Starter",     desc: "Finish a Daily Challenge.", es: "Inicio diario", esDesc: "Termina un Reto diario.",             test: at("dailies", 1) },
+  { id: "daily-7",      icon: "🗓️", title: "Weekly Warrior",    desc: "Finish 7 Daily Challenges.", es: "Guerrero semanal", esDesc: "Termina 7 Retos diarios.",            test: at("dailies", 7) },
+  { id: "daily-30",     icon: "🌟", title: "Daily Legend",      desc: "Finish 30 Daily Challenges.", es: "Leyenda diaria", esDesc: "Termina 30 Retos diarios.",           test: at("dailies", 30) },
   // Bosses
-  { id: "boss-1",       icon: "⚔️", title: "Boss Battler",      desc: "Finish a Boss Battle.",                 test: at("bosses", 1) },
-  { id: "boss-perfect", icon: "🐉", title: "Boss Slayer",       desc: "Win a Boss Battle with every answer right.", test: at("bossPerfect", 1) },
+  { id: "boss-1",       icon: "⚔️", title: "Boss Battler",      desc: "Finish a Boss Battle.", es: "Luchador de jefes", esDesc: "Termina una Batalla de jefe.",                 test: at("bosses", 1) },
+  { id: "boss-perfect", icon: "🐉", title: "Boss Slayer",       desc: "Win a Boss Battle with every answer right.", es: "Matador de jefes", esDesc: "Gana una Batalla de jefe con todas las respuestas bien.", test: at("bossPerfect", 1) },
   // Levels
-  { id: "level-5",      icon: "⬆️", title: "Level 5",           desc: "Reach level 5.",                        test: at("level", 5) },
-  { id: "level-10",     icon: "🚀", title: "Level 10",          desc: "Reach level 10.",                       test: at("level", 10) },
-  { id: "level-25",     icon: "🌠", title: "Level 25",          desc: "Reach level 25.",                       test: at("level", 25) },
+  { id: "level-5",      icon: "⬆️", title: "Level 5",           desc: "Reach level 5.", es: "Nivel 5", esDesc: "Llega al nivel 5.",                        test: at("level", 5) },
+  { id: "level-10",     icon: "🚀", title: "Level 10",          desc: "Reach level 10.", es: "Nivel 10", esDesc: "Llega al nivel 10.",                       test: at("level", 10) },
+  { id: "level-25",     icon: "🌠", title: "Level 25",          desc: "Reach level 25.", es: "Nivel 25", esDesc: "Llega al nivel 25.",                       test: at("level", 25) },
   // Shop
-  { id: "shop-1",       icon: "🛍️", title: "First Purchase",    desc: "Buy something in the shop.",            test: at("owned", 1) },
-  { id: "shop-5",       icon: "🎁", title: "Collector",         desc: "Own 5 shop items.",                     test: at("owned", 5) },
+  { id: "shop-1",       icon: "🛍️", title: "First Purchase",    desc: "Buy something in the shop.", es: "Primera compra", esDesc: "Compra algo en la tienda.",            test: at("owned", 1) },
+  { id: "shop-5",       icon: "🎁", title: "Collector",         desc: "Own 5 shop items.", es: "Coleccionista", esDesc: "Ten 5 artículos de la tienda.",                     test: at("owned", 5) },
 ];
 
 export const achievementById = (id) => ACHIEVEMENTS.find((a) => a.id === id) || null;

@@ -10,14 +10,14 @@
 // guarantees a tone that's harmonious with the existing palette in every
 // theme while still reading as its own hue next to its neighbors.
 export const CAT = {
-  foundations:{label:"Foundations", color:"var(--cat-foundations)", icon:"🧭"},
-  equations:{label:"Equations & Inequalities", color:"var(--cat-equations)", icon:"⚖️"},
-  expressions:{label:"Expressions", color:"var(--cat-expressions)", icon:"🧩"},
-  factoring:{label:"Factoring", color:"var(--cat-factoring)", icon:"🗝️"},
-  rational:{label:"Rational Expressions", color:"color-mix(in srgb, var(--cat-expressions), var(--cat-foundations) 45%)", icon:"➗"},
-  quadratics:{label:"Quadratics", color:"var(--cat-quadratics)", icon:"🎯"},
-  applications:{label:"Applications", color:"var(--cat-applications)", icon:"🗺️"},
-  graphing:{label:"Graphing & Functions", color:"var(--cat-graphing)", icon:"📈"},
+  foundations:{label:"Foundations", es:"Fundamentos", color:"var(--cat-foundations)", icon:"🧭"},
+  equations:{label:"Equations & Inequalities", es:"Ecuaciones y desigualdades", color:"var(--cat-equations)", icon:"⚖️"},
+  expressions:{label:"Expressions", es:"Expresiones", color:"var(--cat-expressions)", icon:"🧩"},
+  factoring:{label:"Factoring", es:"Factorización", color:"var(--cat-factoring)", icon:"🗝️"},
+  rational:{label:"Rational Expressions", es:"Expresiones racionales", color:"color-mix(in srgb, var(--cat-expressions), var(--cat-foundations) 45%)", icon:"➗"},
+  quadratics:{label:"Quadratics", es:"Cuadráticas", color:"var(--cat-quadratics)", icon:"🎯"},
+  applications:{label:"Applications", es:"Aplicaciones", color:"var(--cat-applications)", icon:"🗺️"},
+  graphing:{label:"Graphing & Functions", es:"Gráficas y funciones", color:"var(--cat-graphing)", icon:"📈"},
 };
 // Suggested learning order (not enforced — just controls display order within
 // each region below): foundations -> expression basics -> equations -> graphing

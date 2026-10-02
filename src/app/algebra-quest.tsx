@@ -14,6 +14,8 @@ import {
 } from "@/lib/learners";
 import { createPusher, mergeState, sameProgress } from "@/game/sync.js";
 import { LearnerPicker, RecoveryScreen, SignInScreen } from "./auth-screens";
+import { L, deviceLang, setLang } from "@/game/i18n.js";
+import { useLang } from "./lang";
 
 // The game is an imperative DOM app (src/game/app.js). It renders into #app and
 // #confettiCanvas, so it is loaded in the browser after those elements exist.
@@ -30,6 +32,7 @@ type SyncStatus = "saved" | "saving" | "offline";
 const learnerKey = (userId: string, learnerId: string) => `aq:${userId}:${learnerId}`;
 
 export default function AlgebraQuest() {
+  useLang();
   const db = getSupabase();
   const [screen, setScreen] = useState<Screen>(backendEnabled ? { name: "loading" } : { name: "playing", learner: null });
   const [session, setSession] = useState<Session | null>(null);
@@ -41,6 +44,11 @@ export default function AlgebraQuest() {
   // Set while someone is choosing a new password, so the sign-in events that come with the reset link
   // don't whisk them off to the "Who's playing?" screen.
   const recoveringRef = useRef(false);
+
+  // Start in the language this device last used (or the browser's); a signed-in learner's own choice takes over once loaded.
+  useEffect(() => {
+    setLang(deviceLang());
+  }, []);
 
   // Offline support (installed app / no connection).
   useEffect(() => {
@@ -91,7 +99,7 @@ export default function AlgebraQuest() {
     let alive = true;
     listLearners(db).then(
       (rows) => { if (alive) { setLearners(rows); setPickerError(null); } },
-      () => { if (alive) setPickerError("Couldn't load your learners. Check your connection and try again."); },
+      () => { if (alive) setPickerError(L("Couldn't load your learners. Check your connection and try again.", "No se pudieron cargar tus estudiantes. Revisa tu conexión e inténtalo de nuevo.")); },
     );
     return () => { alive = false; };
   }, [db, screen.name, session]);
@@ -204,7 +212,7 @@ export default function AlgebraQuest() {
       setLearners((l) => [...l, learner]);
       await startLearner(learner);
     } catch {
-      setPickerError("Couldn't add that learner. Check your connection and try again.");
+      setPickerError(L("Couldn't add that learner. Check your connection and try again.", "No se pudo agregar a ese estudiante. Revisa tu conexión e inténtalo de nuevo."));
     }
   }
 
@@ -215,7 +223,7 @@ export default function AlgebraQuest() {
       try { localStorage.removeItem(learnerKey(session!.user.id, l.id)); } catch {}
       setLearners((all) => all.filter((x) => x.id !== l.id));
     } catch {
-      setPickerError("Couldn't delete that learner. Try again.");
+      setPickerError(L("Couldn't delete that learner. Try again.", "No se pudo eliminar a ese estudiante. Inténtalo de nuevo."));
     }
   }
 
@@ -260,20 +268,20 @@ export default function AlgebraQuest() {
         />
       )}
       {playing && backendEnabled && (
-        <nav className="accountbar" aria-label="Account">
+        <nav className="accountbar" aria-label={L("Account", "Cuenta")}>
           {screen.learner ? (
             <>
               <span className="who">👤 {screen.learner.name}</span>
               <span className={`sync ${status === "saved" ? "ok" : status === "offline" ? "bad" : ""}`} role="status">
-                {status === "saved" ? "✓ Saved" : status === "saving" ? "Saving…" : "Offline · will sync"}
+                {status === "saved" ? L("✓ Saved", "✓ Guardado") : status === "saving" ? L("Saving…", "Guardando…") : L("Offline · will sync", "Sin conexión · se sincronizará")}
               </span>
-              <button className="shell-link" onClick={switchPlayer}>Switch player</button>
-              <button className="shell-link" onClick={signOut}>Sign out</button>
+              <button className="shell-link" onClick={switchPlayer}>{L("Switch player", "Cambiar de jugador")}</button>
+              <button className="shell-link" onClick={signOut}>{L("Sign out", "Cerrar sesión")}</button>
             </>
           ) : (
             <>
-              <span className="who">Playing on this device only</span>
-              <button className="shell-link" onClick={switchPlayer}>Sign in to sync</button>
+              <span className="who">{L("Playing on this device only", "Jugando solo en este dispositivo")}</span>
+              <button className="shell-link" onClick={switchPlayer}>{L("Sign in to sync", "Inicia sesión para sincronizar")}</button>
             </>
           )}
         </nav>

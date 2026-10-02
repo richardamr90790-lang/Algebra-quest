@@ -18,6 +18,7 @@ function normalizeMath(raw){
   s = s.replace(/[√]/g, "sqrt");
   s = s.replace(/sqrt\(([^()]+)\)/gi, "sqrt$1");
   s = s.toLowerCase();
+  s = s.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // Spanish accents (años, dólares, sí) never matter
   s = s.replace(/\^/g, "");
   s = s.replace(/(\d)\s*x\s*(?=\d)/gi, "$1*"); // "5.2 x 10" -> multiply, not variable x
   s = s.replace(/(\d),(\d{3})(?!\d)/g, "$1$2"); // strip thousands separators
@@ -25,11 +26,13 @@ function normalizeMath(raw){
   return s;
 }
 function splitClauses(s){
-  return s.split(/\s*,\s*|\s+or\s+/i).map(x=>x.trim()).filter(Boolean);
+  // "or" in English, "o" in Spanish
+  return s.split(/\s*,\s*|\s+(?:or|o)\s+/i).map(x=>x.trim()).filter(Boolean);
 }
 function cleanClause(c){
   c = c.replace(/\$/g,"").replace(/%/g,"");
-  c = c.replace(/\b(miles?|mi|dollars?|years?\s*old|hours?|hrs?|seconds?|secs?|where|when)\b/g,"");
+  // English words and their Spanish forms (accents are already stripped: años -> anos, dólares -> dolares)
+  c = c.replace(/\b(miles?|mi|dollars?|years?\s*old|hours?|hrs?|seconds?|secs?|where|when|millas?|dolares?|anos?(\s*de\s*edad)?|horas?|segundos?|segs?|donde|cuando)\b/g,"");
   c = c.replace(/≈/g,"");
   c = c.replace(/\s+/g,"");
   return c;
