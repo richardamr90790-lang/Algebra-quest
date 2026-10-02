@@ -3,13 +3,16 @@
 import { TOPICS } from "../src/game/data/topics.js";
 import { DICTIONARY_SECTIONS } from "../src/game/data/dictionary.js";
 
-const IGNORE = new Set(["sqrt", "frac", "span", "class", "div", "num", "den", "step", "label", "legend", "notice", "purple", "blue", "red", "green"]);
+const IGNORE = new Set(["sqrt"]);
+// Short English words that the 3-letter rule would miss.
+const SHORT = new Set(["so", "no", "up", "is", "an", "in", "on", "of", "to", "by", "at", "as", "if", "it", "be"]);
 
 // Does this string contain English wording (rather than being only maths and markup)?
 export function needsTranslation(s) {
   if (typeof s !== "string") return false;
   const bare = s.replace(/<[^>]*>/g, " ").replace(/###[^#]*###/g, " ");
   if (/\b(or|and)\b/.test(bare)) return true;
+  if ((bare.match(/[A-Za-z]{2}/g) || []).length && (bare.match(/\b[A-Za-z]{2}\b/g) || []).some((w) => SHORT.has(w.toLowerCase()))) return true;
   return (bare.match(/[A-Za-z]{3,}/g) || []).some((w) => !IGNORE.has(w.toLowerCase()));
 }
 
