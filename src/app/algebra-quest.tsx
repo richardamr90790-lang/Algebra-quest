@@ -233,7 +233,7 @@ export default function AlgebraQuest() {
         />
       )}
       {playing && backendEnabled && (
-        <div className="accountbar">
+        <nav className="accountbar" aria-label="Account">
           {screen.learner ? (
             <>
               <span className="who">👤 {screen.learner.name}</span>
@@ -249,10 +249,12 @@ export default function AlgebraQuest() {
               <button className="shell-link" onClick={switchPlayer}>Sign in to sync</button>
             </>
           )}
-        </div>
+        </nav>
       )}
-      <div id="app" hidden={!playing} />
-      <canvas id="confettiCanvas" hidden={!playing} />
+      {/* Screen readers: the game announces results here (see announce() in src/game/app.js). */}
+      <div id="srAnnounce" className="sr-only" role="status" aria-live="polite" aria-atomic="true" />
+      <main id="app" hidden={!playing} />
+      <canvas id="confettiCanvas" hidden={!playing} aria-hidden="true" />
     </>
   );
 }

@@ -560,6 +560,7 @@ function showBadgeToast(list){
   el.addEventListener("click", ()=>el.remove());
   document.body.appendChild(el);
   setTimeout(()=>playSound("badge"), 450);
+  announce(`Badge earned: ${list.map(a=>a.title).join(", ")}`);
   setTimeout(()=>el.remove(), 5000);
 }
 function openBadges(){ view = "badges"; render(); }
@@ -615,7 +616,7 @@ function shopItemHTML(item){
 }
 function renderShop(){
   const bal = balance(state.xp, state.owned);
-  const section = (kind,title)=>`<h3 class="shop-h">${title}</h3><div class="shop-grid">${SHOP_ITEMS.filter(i=>i.kind===kind).map(shopItemHTML).join("")}</div>`;
+  const section = (kind,title)=>`<h3 class="shop-h" aria-level="2">${title}</h3><div class="shop-grid">${SHOP_ITEMS.filter(i=>i.kind===kind).map(shopItemHTML).join("")}</div>`;
   app.innerHTML = `
   <div class="view-enter">
   <div class="topbar">
@@ -866,6 +867,9 @@ function submitTyped(){
   const threshold = (p.kind==="guided" || session.mode==="placement") ? 1 : 2;
   session.attempts = (session.attempts||0) + 1;
   session.diagnosis = matched ? null : diagnoseMistake(text, checkAnswerFor(p));
+  if(matched) announce("Correct!");
+  else if(session.attempts < threshold) announce(`Not quite. ${session.diagnosis ? session.diagnosis.message : "Give it one more try."}`);
+  else announce(`Not quite. The answer is ${stripTags(String(p.a))}. ${session.diagnosis ? session.diagnosis.message : ""}`);
   if(!matched && session.attempts < threshold){
     session.retryFlash = true;
     if(p.kind==="practice" && session.mode!=="placement" && !(session.hintLevel>0)) session.hintLevel = 1; // a miss shows the rule
@@ -1094,7 +1098,31 @@ export function readLocalState(key){
 export function currentState(){ return state; }
 export function stopGame(){ if(window.speechSynthesis) speechSynthesis.cancel(); }
 
+// Tell screen readers something (a result, a badge) without moving focus. Cleared first so repeating the same
+// message is still announced.
+function announce(msg){
+  const el = document.getElementById("srAnnounce");
+  if(!el) return;
+  el.textContent = "";
+  setTimeout(()=>{ el.textContent = msg; }, 60);
+}
+// When the learner moves to a different screen, put focus on its heading so screen reader and keyboard users
+// start at the top of the new content instead of on a button that no longer exists.
+let lastRenderedView = null;
+function focusScreenHeading(){
+  const h = app.querySelector("h1, h2");
+  if(!h) return;
+  h.setAttribute("tabindex","-1");
+  h.focus({preventScroll:true});
+}
 function render(){
+  const changed = view !== lastRenderedView;
+  const first = lastRenderedView === null;
+  lastRenderedView = view;
+  renderView();
+  if(changed && !first) focusScreenHeading();
+}
+function renderView(){
   if(window.speechSynthesis) speechSynthesis.cancel();
   if(view==="home") return renderHome();
   if(view==="quest"){
@@ -1120,7 +1148,7 @@ function statsBarHTML(){
 function themePanelHTML(){
   const swatches = THEMES.map(t=>{
     const pressed = state.theme===t.id;
-    return `<button type="button" class="theme-swatch" data-theme-pick="${t.id}" role="option" aria-pressed="${pressed}">
+    return `<button type="button" class="theme-swatch" data-theme-pick="${t.id}" role="option" aria-selected="${pressed}">
       <span class="swatch-dot" style="--sw-a:${t.a};--sw-b:${t.b};--sw-c:${t.c}" aria-hidden="true"></span>
       <span>${t.name}</span>
       <span class="swatch-check" aria-hidden="true">✓</span>
@@ -1132,7 +1160,7 @@ function themePanelHTML(){
 function avatarPanelHTML(){
   const options = allowedAvatars().map(a=>{
     const pressed = (state.avatar||"root")===a.id;
-    return `<button type="button" class="avatar-swatch" data-avatar-pick="${a.id}" role="option" aria-pressed="${pressed}" title="${a.label}">
+    return `<button type="button" class="avatar-swatch" data-avatar-pick="${a.id}" role="option" aria-selected="${pressed}" title="${a.label}">
       <span class="avatar-swatch-icon" aria-hidden="true">${a.icon}</span>
       <span class="avatar-swatch-check" aria-hidden="true">✓</span>
     </button>`;
@@ -1149,7 +1177,7 @@ function bossPanelHTML(){
       </span>
       <span class="boss-mode-count">🎲 ${l.count} Q</span>
     </button>`).join("");
-  return `<div class="boss-panel" id="bossPanel" role="menu" aria-label="Choose a Boss Battle difficulty">${modes}</div>`;
+  return `<div class="boss-panel" id="bossPanel" role="group" aria-label="Choose a Boss Battle difficulty">${modes}</div>`;
 }
 function renderHome(){
   const regions = ["foundations","expressions","equations","graphing","factoring","rational","quadratics","applications"];
@@ -1218,12 +1246,12 @@ function renderHome(){
       const badge = isMasteredNow ? `<div class="mastered-badge${justCompleted ? " badge-glow" : ""}">🏆</div>` : "";
       const dateLabel = masteredDateLabel(t.id);
       html += `
-      <div class="topic-card" style="--cat:${CAT[t.cat].color}" data-topic="${t.id}" role="button" tabindex="0">
+      <div class="topic-card" style="--cat:${CAT[t.cat].color}" data-topic="${t.id}">
         ${badge}
         <button type="button" class="topic-reset-btn" id="resetTopic-${t.id}" data-topic-reset="${t.id}" title="Reset this topic's progress">↻</button>
         <button type="button" class="topic-reroll-btn" id="rerollTopic-${t.id}" data-topic-reroll="${t.id}" title="Get new practice problems for this topic">🎲</button>
         <div class="num">${displayNum}</div>
-        <div class="ttitle">${t.title}</div>
+        <div class="ttitle"><button type="button" class="topic-open" data-topic-open="${t.id}">${t.title}<span class="sr-only">, ${done} of ${total} mastered${state.placement && state.placement.start===t.id ? ", suggested starting point" : ""}</span></button></div>
         ${state.placement && state.placement.start===t.id ? `<div class="start-here">⭐ Start here</div>` : ""}
         <div class="prog-label">${done} / ${total} mastered${dateLabel ? ` <span class="prog-date">· ${dateLabel}</span>` : ""}</div>
         <div class="prog-track"><div class="prog-fill" data-topic-prog="${t.id}" style="width:${pct}%"></div></div>
@@ -1236,7 +1264,7 @@ function renderHome(){
   <button class="boss-card" id="bossBtn" aria-haspopup="true" aria-expanded="${bossPanelOpen}">
     <div class="bicon">⚔️</div>
     <div>
-      <h3>Boss Battle</h3>
+      <h3 aria-level="2">Boss Battle</h3>
       <p>Pick a difficulty — Easy through Hell Mode — for a focused challenge round.</p>
     </div>
   </button>
@@ -1246,10 +1274,9 @@ function renderHome(){
 
   app.innerHTML = html;
   app.querySelectorAll(".topic-card").forEach(el=>{
+    // The whole card is clickable for mouse and touch; keyboard users use the real button inside it
+    // (Enter / Space on it produce a click that bubbles up to here).
     el.addEventListener("click", ()=> startTopic(Number(el.dataset.topic)));
-    el.addEventListener("keydown", e=>{
-      if(e.key==="Enter" || e.key===" "){ e.preventDefault(); startTopic(Number(el.dataset.topic)); }
-    });
   });
   app.querySelectorAll(".topic-reset-btn").forEach(btn=>{
     btn.addEventListener("click", e=>{
@@ -1442,7 +1469,7 @@ function renderIntro(){
     <button class="backbtn" id="backBtn">←</button>
     <div class="region-badge" style="--cat:${catColor}">${catIcon}</div>
     <div class="qtitle">
-      <h2>${session.title}</h2>
+      <h2 aria-level="1">${session.title}</h2>
       <div class="sub">Let's learn this one</div>
     </div>
     ${statsBarHTML()}
@@ -1486,7 +1513,7 @@ function renderExamples(){
     <button class="backbtn" id="backBtn">←</button>
     <div class="region-badge" style="--cat:${catColor}">${catIcon}</div>
     <div class="qtitle">
-      <h2>${session.title}</h2>
+      <h2 aria-level="1">${session.title}</h2>
       <div class="sub">Example ${session.exPos+1} of ${session.examples.length}</div>
     </div>
     ${statsBarHTML()}
@@ -1529,7 +1556,7 @@ function renderDictionary(){
   <div class="questbar">
     <button class="backbtn" id="backBtn">←</button>
     <div class="qtitle">
-      <h2>Terminology &amp; Formulas</h2>
+      <h2 aria-level="1">Terminology &amp; Formulas</h2>
       <div class="sub">A quick reference — not graded</div>
     </div>
     ${statsBarHTML()}
@@ -1571,7 +1598,7 @@ function renderQuest(){
     <button class="backbtn" id="backBtn">←</button>
     <div class="region-badge" style="--cat:${catColor}">${catIcon}</div>
     <div class="qtitle">
-      <h2>${session.title}</h2>
+      <h2 aria-level="1">${session.title}</h2>
       <div class="sub">${session.pos+1} / ${session.problems.length}</div>
     </div>
     ${statsBarHTML()}

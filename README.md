@@ -11,6 +11,8 @@ npm install
 npm run dev      # http://localhost:3000
 npm test         # engine, backup and sync unit tests
 npm run e2e:local  # browser test: offline, backup (build without Supabase keys on :3100)
+npm run e2e:a11y   # accessibility: axe on every screen x theme, layout, touch sizes, keyboard (build without Supabase keys on :3100)
+npm run e2e:a11y-accounts # accessibility of the sign-in / Who's playing screens (build with fake keys, see the file header)
 npm run e2e:report # browser test: progress report, activity log, print styles (build without Supabase keys on :3100)
 npm run e2e:badges # browser test: badges, counters, pop-ups (build without Supabase keys on :3100)
 npm run e2e:sound  # browser test: which sound plays when, mute (build without Supabase keys on :3100)
@@ -67,4 +69,4 @@ Merge to `main`; the host (Vercel) redeploys. Installed copies pick up the new v
 2. Learning engine: spaced review (done), hints and mistake-aware feedback (done), placement check-in (done), gentle adaptive difficulty (done), unlimited question variations
 3. Progress report for parents and teachers (done): overview, where to help, recent activity, print / PDF
 4. Engagement: daily challenge (done), avatar shop (done), sound (done), achievements (done) (no daily streak, by choice)
-5. Accessibility, mobile polish, analytics
+5. Accessibility and mobile polish (done); no third-party analytics, by choice, because the learners are children

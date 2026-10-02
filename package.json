@@ -19,7 +19,9 @@
     "e2e:shop": "node e2e/shop.e2e.mjs",
     "e2e:sound": "node e2e/sound.e2e.mjs",
     "e2e:badges": "node e2e/badges.e2e.mjs",
-    "e2e:report": "node e2e/report.e2e.mjs"
+    "e2e:report": "node e2e/report.e2e.mjs",
+    "e2e:a11y": "node e2e/a11y.e2e.mjs",
+    "e2e:a11y-accounts": "node e2e/a11y-accounts.e2e.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
@@ -31,6 +33,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "axe-core": "^4.13.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
     "playwright": "^1.63.0",
