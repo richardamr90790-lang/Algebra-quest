@@ -9,6 +9,7 @@
 import { mergeReview } from "./review.js";
 import { mergeOwned } from "./shop.js";
 import { mergeBadges, mergeStats } from "./achievements.js";
+import { mergeActivity } from "./report.js";
 
 const asObj = (v) => (v && typeof v === "object" && !Array.isArray(v) ? v : {});
 const ms = (v) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
@@ -67,6 +68,9 @@ export function mergeState(a, b) {
   const badges = counting.reduce((acc, s) => mergeBadges(acc, s.badges), {});
   const stats = counting.reduce((acc, s) => mergeStats(acc, s.stats), mergeStats());
 
+  // Recent activity: union of both devices' logs, newest first.
+  const activity = counting.reduce((acc, s) => mergeActivity(acc, s.activity), []);
+
   // Re-rolled practice sets: take the newer side's, falling back to the older's.
   const customProblems = { ...asObj(older.customProblems), ...asObj(newer.customProblems) };
   for (const id of Object.keys(customProblems)) {
@@ -88,6 +92,7 @@ export function mergeState(a, b) {
     owned,
     badges,
     stats,
+    activity,
     review: mergeReview(asObj(a.review), asObj(b.review), { resetAt, topicResets }),
     resetAt,
     topicResets,

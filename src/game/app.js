@@ -12,6 +12,7 @@ import { dailyProblems, dailyDoneToday, DAILY_XP_PER_CORRECT, DAILY_BONUS_XP } f
 import { SHOP_ITEMS, itemById, balance, buy, canUse, isOwned } from "./shop.js";
 import { createSoundPlayer } from "./sound.js";
 import { ACHIEVEMENTS, EMPTY_STATS, newBadges, achievementById } from "./achievements.js";
+import { addActivity, buildReport, describeScore } from "./report.js";
 
 function checkAnswerFor(p){ return p.check || p.a; }
 
@@ -67,8 +68,9 @@ let storageKey = LEGACY_STORAGE_KEY;
 let onSaveHook = null;
 function defaultState(){
   return {xp:0, bestStreak:0, mastered:{}, customProblems:{}, theme:"clean", name:"", masteredDates:{}, avatar:"root",
-    updatedAt:0, resetAt:0, topicResets:{}, review:{}, placement:null, placementDismissed:false, daily:null, dailyCount:0, owned:[], frame:"", badges:{}, stats:{...EMPTY_STATS}};
+    updatedAt:0, resetAt:0, topicResets:{}, review:{}, placement:null, placementDismissed:false, daily:null, dailyCount:0, owned:[], frame:"", badges:{}, stats:{...EMPTY_STATS}, activity:[]};
   // review[topicId] = {box, due, last, at} spaced-review schedule (see review.js).
+  // activity = recent finished sessions [{at, mode, title, correct, total}], newest first (see report.js).
   // badges = {achievementId: ms earned}; stats = counters behind the badges (see achievements.js).
   // owned = shop item ids; frame = equipped avatar frame id or "" (see shop.js).
   // daily = {day, correct, total} for the last completed Daily Challenge; dailyCount = challenges completed in all.
@@ -449,6 +451,89 @@ function dailyCardHTML(){
   return `<div class="daily-card"><div class="review-text"><div class="review-title">⭐ Daily Challenge</div>
     <div class="review-sub">5 mixed questions, the same for everyone today · +${DAILY_BONUS_XP} bonus XP</div></div>
     <button type="button" class="review-go" id="dailyBtn">Play</button></div>`;
+}
+
+// ---- Progress report (see report.js) ----
+// Recorded when a session is finished: what it was and how many real practice problems were right.
+function logActivity(){
+  const real = session.problems
+    .map((p,i)=>({p, r:session.results[i]}))
+    .filter(x=>x.p.kind==="practice" && !x.p.scaffold && x.r!==undefined);
+  if(!real.length) return;
+  state.activity = addActivity(state.activity, {
+    at: Date.now(), mode: session.mode, title: session.title,
+    correct: real.filter(x=>x.r==="good").length, total: real.length,
+  });
+  saveState();
+}
+const ACTIVITY_LABEL = {topic:"Topic", review:"Daily Review", daily:"Daily Challenge", boss:"Boss Battle", placement:"Check-in"};
+function activityText(e){
+  const label = ACTIVITY_LABEL[e.mode] || e.mode;
+  const title = e.title || "";
+  return !title ? label : title.startsWith(label) ? title : `${label}: ${title}`;
+}
+function whenText(at){
+  const days = Math.round((new Date().setHours(0,0,0,0) - new Date(at).setHours(0,0,0,0)) / 86400000);
+  const time = new Date(at).toLocaleTimeString(undefined,{hour:"numeric", minute:"2-digit"});
+  if(days<=0) return `Today, ${time}`;
+  if(days===1) return `Yesterday, ${time}`;
+  return `${new Date(at).toLocaleDateString(undefined,{month:"short", day:"numeric"})}, ${time}`;
+}
+function openReport(){ view = "report"; render(); }
+function renderReport(){
+  const labels = {}; Object.keys(CAT).forEach(k=>{ labels[k] = CAT[k].label; });
+  const r = buildReport(state, TOPICS, {
+    regionOrder: REGION_ORDER, labels, problemCount: t=>getTopicProblems(t).length,
+    badgesEarned: Object.keys(state.badges||{}).length, badgesTotal: ACHIEVEMENTS.length,
+  });
+  const chip = lv => lv ? `<span class="rp-chip lvl-${lv}">${(PLACEMENT_LEVEL[lv]||PLACEMENT_LEVEL.needs).icon} ${(PLACEMENT_LEVEL[lv]||PLACEMENT_LEVEL.needs).label}</span>` : "";
+  const tile = (n,l)=>`<div class="rp-tile"><div class="rp-n">${n}</div><div class="rp-l">${l}</div></div>`;
+  const nextReviewText = r.reviewsDue ? `${r.reviewsDue} topic${r.reviewsDue>1?"s":""} due now`
+    : r.nextReview ? `Next review ${r.nextReview}` : "No reviews scheduled yet";
+  app.innerHTML = `
+  <div class="view-enter report">
+    <div class="report-head">
+      <div>
+        <h1>Progress report${r.name ? ` · ${escapeHtml(r.name)}` : ""}</h1>
+        <p>Algebra Quest · ${new Date().toLocaleDateString(undefined,{month:"long", day:"numeric", year:"numeric"})} · ${r.lastPlayed ? `last played ${whenText(r.lastPlayed).toLowerCase()}` : "no sessions yet"}</p>
+      </div>
+      <div class="report-actions no-print">
+        <button class="btn btn-ghost" id="printBtn">🖨️ Print / Save as PDF</button>
+        <button class="btn btn-ghost" id="homeBtn">Back to map</button>
+      </div>
+    </div>
+
+    <div class="rp-tiles">
+      ${tile("Lv "+r.level, "Level")}
+      ${tile(r.xp, "Total XP")}
+      ${tile(r.topicsMastered+"/"+r.totalTopics, "Topics mastered")}
+      ${tile(r.rightAnswers, "Right answers")}
+      ${tile(r.badgesEarned+"/"+r.badgesTotal, "Badges")}
+      ${tile(r.dailies, "Daily challenges")}
+    </div>
+
+    <h2 class="rp-h">Progress by area</h2>
+    <div class="rp-areas">${r.regions.map(x=>`
+      <div class="rp-area">
+        <div class="rp-area-top"><span>${CAT[x.cat].icon} ${x.label} ${chip(x.checkin)}</span><span>${x.mastered}/${x.total} topics</span></div>
+        <div class="rp-bar" role="img" aria-label="${x.pct}% mastered"><div class="rp-bar-fill" style="width:${x.pct}%;--cat:${CAT[x.cat].color}"></div></div>
+      </div>`).join("")}</div>
+
+    <h2 class="rp-h">Where to help</h2>
+    ${r.attention.length
+      ? `<ul class="rp-list">${r.attention.map(a=>`<li class="kind-${a.kind}">${a.text}</li>`).join("")}</ul>`
+      : `<p class="rp-empty">Nothing flagged right now.${r.checkinDone ? "" : " The check-in (🧭 on the map) shows which areas need work."}</p>`}
+    ${r.suggestedStart ? `<p class="rp-note">Suggested starting point from the check-in: <strong>${r.suggestedStart}</strong></p>` : ""}
+    <p class="rp-note">Daily Review: ${nextReviewText} · ${r.reviewsDone} review${r.reviewsDone===1?"":"s"} finished · best answer streak ${r.bestStreak}</p>
+
+    <h2 class="rp-h">Recent activity</h2>
+    ${r.recent.length
+      ? `<table class="rp-table"><thead><tr><th>When</th><th>What</th><th>Score</th></tr></thead><tbody>${r.recent.map(e=>`
+        <tr><td>${whenText(e.at)}</td><td>${escapeHtml(activityText(e))}</td><td>${describeScore(e)}</td></tr>`).join("")}</tbody></table>`
+      : `<p class="rp-empty">No finished sessions yet. They will show up here.</p>`}
+  </div>`;
+  document.getElementById("homeBtn").addEventListener("click", backHome);
+  document.getElementById("printBtn").addEventListener("click", ()=>window.print());
 }
 
 // ---- Achievements: counters, unlock detection and the pop-up (see achievements.js) ----
@@ -890,6 +975,7 @@ function mark(correct){
       if(session.mode==="placement") finishPlacement();
       if(session.mode==="daily") finishDaily();
       if(session.mode==="boss") finishBoss();
+      logActivity();
       checkAchievements();
       view="summary"; render();
       if(session.correctCount===session.problems.length) burstConfetti();
@@ -1020,6 +1106,7 @@ function render(){
   if(view==="dictionary") return renderDictionary();
   if(view==="shop") return renderShop();
   if(view==="badges") return renderBadges();
+  if(view==="report") return renderReport();
 }
 
 function statsBarHTML(){
@@ -1090,6 +1177,7 @@ function renderHome(){
       <input type="text" id="nameInput" class="name-input${state.name ? " has-name" : ""}" placeholder="Add your name" value="${escapeHtml(state.name||"")}" maxlength="24" aria-label="Your name, used to personalize messages">
     </div>
     <button type="button" class="theme-toggle" id="dictionaryBtn" title="Terminology &amp; formula dictionary">📖 Dictionary</button>
+    <button type="button" class="theme-toggle" id="reportBtn" title="Progress report for parents and teachers">📊 Report</button>
     <button type="button" class="theme-toggle" id="badgesBtn" title="See your badges">🏅 Badges <span class="badge-count">${Object.keys(state.badges||{}).length}/${ACHIEVEMENTS.length}</span></button>
     <button type="button" class="theme-toggle" id="soundBtn" aria-pressed="${!soundMuted()}" title="Turn sound effects on or off">${soundMuted() ? "🔇 Muted" : "🔊 Sound"}</button>
     <button type="button" class="theme-toggle" id="shopBtn" title="Spend XP on new characters and frames">🛍️ Shop</button>
@@ -1235,6 +1323,7 @@ function renderHome(){
     saveState();
   });
 
+  document.getElementById("reportBtn").addEventListener("click", openReport);
   document.getElementById("badgesBtn").addEventListener("click", openBadges);
   document.getElementById("soundBtn").addEventListener("click", ()=>{
     setSoundMuted(!soundMuted());

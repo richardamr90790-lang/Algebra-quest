@@ -2,7 +2,7 @@
 // growing gap (Leitner boxes). Pass a review and the gap grows; miss it and the
 // topic comes back tomorrow. Pure functions, no DOM, so they can be unit tested.
 //
-// review[topicId] = { box, due: "YYYY-MM-DD", last: "YYYY-MM-DD", at: ms }
+// review[topicId] = { box, due: "YYYY-MM-DD", last: "YYYY-MM-DD", at: ms, ok: last result was a pass }
 
 export const INTERVAL_DAYS = [1, 3, 7, 14, 30];
 export const PASS_RATIO = 0.8; // share of a topic's practice problems needed to count as a pass
@@ -33,7 +33,7 @@ export function recordResult(review, topicId, passed, now = new Date(), skip = 0
   const box = passed ? Math.min((prev ? prev.box : -1) + 1 + skip, INTERVAL_DAYS.length - 1) : 0;
   return {
     ...(review || {}),
-    [topicId]: { box, due: addDays(today, INTERVAL_DAYS[box]), last: today, at: now.getTime() },
+    [topicId]: { box, due: addDays(today, INTERVAL_DAYS[box]), last: today, at: now.getTime(), ok: !!passed },
   };
 }
 

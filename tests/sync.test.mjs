@@ -149,3 +149,10 @@ test("badges and counters merge across devices, and a later reset clears them", 
   assert.deepEqual(reset.badges, {});
   assert.equal(reset.stats.correct, 0);
 });
+
+test("recent activity merges across devices and a later reset clears it", () => {
+  const a = s({ updatedAt: 100, activity: [{ at: 5, mode: "topic", title: "A", correct: 1, total: 2 }] });
+  const b = s({ updatedAt: 200, activity: [{ at: 9, mode: "review", title: "B", correct: 2, total: 2 }, { at: 5, mode: "topic", title: "A", correct: 1, total: 2 }] });
+  assert.deepEqual(mergeState(a, b).activity.map((e) => e.at), [9, 5]);
+  assert.deepEqual(mergeState(a, s({ updatedAt: 300, resetAt: 300 })).activity, []);
+});
