@@ -3,6 +3,7 @@ import { DICTIONARY_SECTIONS } from "./data/dictionary.js";
 import { BOSS_LEVELS, bossHellGenerators } from "./engine/boss-tiers.js";
 import { GENERATORS, choice } from "./engine/generators.js";
 import { checkEquivalence, matchAnyOrder } from "./engine/equivalence.js";
+import { diagnoseMistake } from "./engine/mistakes.js";
 import { serializeBackup, parseBackup, backupFileName } from "./backup.js";
 import { recordResult, dueTopics, nextDueDay, passed, localDay, daysBetween } from "./review.js";
 
@@ -374,7 +375,7 @@ function skipGuidedPractice(){
   session.pos = session.guidedCount;
   session.revealed=false; session.autoResult=null; session.attempts=0; session.retryFlash=false;
   session.blankAnswers=null; session.blankCorrect=null;
-  session.draftAnswer=""; session.draftBlanks=null;
+  session.draftAnswer=""; session.draftBlanks=null; session.hintLevel=0; session.diagnosis=null;
   render();
 }
 // Picks whichever worked example best matches the problem the student is
@@ -443,6 +444,41 @@ function peekNextExample(){
 function peekPrevExample(){
   if(session.peekPos > 0){ session.peekPos--; render(); }
 }
+// ---- Hints: the topic's rule first, then the first step of the worked solution ----
+function hintsFor(p){
+  const t = TOPICS.find(x=>x.id===p.topicId);
+  return {
+    rule: p.howTo || (t && t.howTo) || "",
+    step: (p.steps && p.steps.length) ? p.steps[0] : "",
+  };
+}
+function hintBoxHTML(p){
+  const level = session.hintLevel || 0;
+  if(!level) return "";
+  const {rule, step} = hintsFor(p);
+  let html = "";
+  if(rule) html += `<div class="hint-box"><span class="lbl">💡 Remember</span>${renderStepText(rule)}</div>`;
+  if(level>=2 && step) html += `<div class="hint-box"><span class="lbl">💡 First step</span>${renderStepText(step)}</div>`;
+  return html;
+}
+function hintButtonHTML(p){
+  const level = session.hintLevel || 0;
+  const {rule, step} = hintsFor(p);
+  if(level===0 && (rule || step)) return `<button class="btn-link" id="hintBtn">💡 Need a hint?</button>`;
+  if(level===1 && step) return `<button class="btn-link" id="hintBtn">💡 Show another hint</button>`;
+  return "";
+}
+function showNextHint(){
+  const input = document.getElementById("answerInput");
+  if(input) session.draftAnswer = input.value;
+  const {rule, step} = hintsFor(session.problems[session.pos]);
+  const level = session.hintLevel || 0;
+  // Skip straight to the first step when there is no rule to show.
+  session.hintLevel = (level===0 && !rule && step) ? 2 : level + 1;
+  render();
+  const inp = document.getElementById("answerInput");
+  if(inp) inp.focus();
+}
 function tryAgain(){
   session.retryFlash = false;
   render();
@@ -463,8 +499,10 @@ function submitTyped(){
   const matched = checkEquivalence(text, checkAnswerFor(p));
   const threshold = p.kind==="guided" ? 1 : 2;
   session.attempts = (session.attempts||0) + 1;
+  session.diagnosis = matched ? null : diagnoseMistake(text, checkAnswerFor(p));
   if(!matched && session.attempts < threshold){
     session.retryFlash = true;
+    if(p.kind==="practice" && !(session.hintLevel>0)) session.hintLevel = 1; // a miss shows the rule
     render();
     const inp = document.getElementById("answerInput");
     if(inp){ inp.focus(); inp.select(); }
@@ -541,7 +579,7 @@ function mark(correct){
       session.pos++; session.revealed=false; session.autoResult=null;
       session.attempts=0; session.retryFlash=false;
       session.blankAnswers=null; session.blankCorrect=null;
-      session.draftAnswer=""; session.draftBlanks=null; render();
+      session.draftAnswer=""; session.draftBlanks=null; session.hintLevel=0; session.diagnosis=null; render();
     }else{
       if(session.mode==="topic" || session.mode==="review") recordReviewResults();
       view="summary"; render();
@@ -1168,6 +1206,7 @@ function renderQuest(){
       html += `</div>`;
     }else{
       html += `<div class="you-typed">You typed: <strong>${escapeHtml(session.autoResult.userText)}</strong></div>`;
+      if(!session.autoResult.matched && session.diagnosis) html += `<div class="mistake-note">💬 ${session.diagnosis.message}</div>`;
     }
     html += `<div class="answer-box"><span class="lbl">Answer</span>${p.a}</div>`;
     if(session.autoResult.showHowTo && p.steps && p.steps.length){
@@ -1242,14 +1281,17 @@ function renderQuest(){
       html += `<div class="hint-box"><span class="lbl">💡 Hint</span>${renderStepText(p.steps[0])}</div>`;
     }
     if(session.retryFlash){
-      html += `<div class="feedback feedback-bad">🤔 Not quite — give it one more try!</div>`;
+      const note = session.diagnosis ? session.diagnosis.message : "Give it one more try!";
+      html += `<div class="feedback feedback-bad">🤔 Not quite. ${note}</div>`;
     }
+    if(p.kind==="practice") html += hintBoxHTML(p);
     html += `
     <div class="answer-input-row">
       <input type="text" id="answerInput" placeholder="Type your answer here…" autocomplete="off" autocapitalize="off" spellcheck="false" value="${escapeHtml(session.draftAnswer||"")}">
       <button class="btn btn-primary" id="checkBtn">Check</button>
     </div>
     <div class="symbol-row">${SYMBOLS.map(s=>`<button type="button" class="symBtn${s.label.includes(" ")?" symBtnWide":""}" data-sym="${s.insert}" title="${s.title}">${escapeHtml(s.label)}</button>`).join("")}</div>
+    ${p.kind==="practice" ? hintButtonHTML(p) : ""}
     <button class="btn-link" id="skipBtn">I'd rather just reveal the answer</button>
     ${p.kind==="guided" ? `<button class="btn-link" id="skipGuidedBtn">Skip guided practice → start the problems</button>` : ""}`;
   }
@@ -1363,6 +1405,8 @@ function renderQuest(){
     });
   }else{
     document.getElementById("checkBtn").addEventListener("click", submitTyped);
+    const hintBtn = document.getElementById("hintBtn");
+    if(hintBtn) hintBtn.addEventListener("click", showNextHint);
     document.getElementById("skipBtn").addEventListener("click", skipToReveal);
     const skipGuidedBtn2 = document.getElementById("skipGuidedBtn");
     if(skipGuidedBtn2) skipGuidedBtn2.addEventListener("click", skipGuidedPractice);

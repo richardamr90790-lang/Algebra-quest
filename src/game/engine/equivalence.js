@@ -42,7 +42,7 @@ function groupSortIfPureParens(c){
   }
   return c;
 }
-function parseNumeric(c){
+export function parseNumeric(c){
   const m = c.match(/^[a-z]?=?(-?\d+(\.\d+)?(\/\d+(\.\d+)?)?)$/);
   if(!m) return null;
   const val = m[1];
@@ -54,13 +54,13 @@ function parseNumeric(c){
   const n = Number(val);
   return isNaN(n) ? null : n;
 }
-function clauseEquals(a,b){
+export function clauseEquals(a,b){
   if(a===b) return true;
   const na = parseNumeric(a), nb = parseNumeric(b);
   if(na!==null && nb!==null) return Math.abs(na-nb) < 1e-6;
   return false;
 }
-function canonicalClauses(raw){
+export function canonicalClauses(raw){
   const normalized = normalizeMath(raw);
   return splitClauses(normalized).map(cleanClause).map(groupSortIfPureParens).filter(Boolean);
 }
