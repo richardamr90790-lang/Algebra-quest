@@ -34,6 +34,10 @@ npm run build && npm start
 | `public/sw.js` | Service worker: pages network-first, static files cache-first |
 | `legacy/` | The original single-file HTML, kept for reference and parity checks |
 
+## Deploying
+
+Import the repo into Vercel (framework: Next.js) and set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` as **Config** variables for Production. Vercel builds every push to `main`; other branches get preview deployments. Make `main` the repo's default branch.
+
 ## Updating
 
 Merge to `main`; the host (Vercel) redeploys. Installed copies pick up the new version the next time they are opened while online. Saved progress lives in the browser (`localStorage`, key `algebraQuestState_v1`), not in the code, so deploys never touch it.
