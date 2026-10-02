@@ -10,6 +10,7 @@ import { buildPlan, scoreRegions, recommendStart, REGION_ORDER } from "./placeme
 import { shouldInsertWarmup, nextMissStreak, isPerfectRun } from "./adaptive.js";
 import { dailyProblems, dailyDoneToday, DAILY_XP_PER_CORRECT, DAILY_BONUS_XP } from "./daily.js";
 import { SHOP_ITEMS, itemById, balance, buy, canUse, isOwned } from "./shop.js";
+import { createSoundPlayer } from "./sound.js";
 
 function checkAnswerFor(p){ return p.check || p.a; }
 
@@ -45,6 +46,17 @@ function markTopicReset(topicId){
   state.topicResets[topicId] = Date.now();
 }
 
+
+/* ===================== SOUND ===================== */
+// Muting is a per-device preference (kept outside the learner's synced progress).
+const SOUND_KEY = "algebraQuestSound";
+function soundMuted(){ try{ return localStorage.getItem(SOUND_KEY)==="off"; }catch{ return false; } }
+function setSoundMuted(m){ try{ localStorage.setItem(SOUND_KEY, m ? "off" : "on"); }catch{ /* storage unavailable: the choice just won't persist */ } }
+const soundPlayer = createSoundPlayer({
+  makeContext: ()=>{ const AC = window.AudioContext || window.webkitAudioContext; return AC ? new AC() : null; },
+  isMuted: soundMuted,
+});
+function playSound(name){ soundPlayer.play(name); }
 
 /* ===================== STATE ===================== */
 export const LEGACY_STORAGE_KEY = "algebraQuestState_v1";
@@ -412,6 +424,7 @@ function finishDaily(){
   state.daily = {day:session.day, correct:session.correctCount, total:session.problems.length};
   state.dailyCount = (state.dailyCount||0) + 1;
   state.xp += DAILY_BONUS_XP;
+  playSound("fanfare");
   session.xpEarned = (session.xpEarned||0) + DAILY_BONUS_XP;
   session.dailyBonus = DAILY_BONUS_XP;
   saveState();
@@ -481,6 +494,7 @@ function renderShop(){
       if(item.kind==="avatar") state.avatar = id; else state.frame = id;   // equip what you just bought
       saveState(); applyFrame();
       shopMsg = `${item.label} is yours and equipped!`;
+      playSound("buy");
       burstConfetti();
     }else{
       shopMsg = res.reason==="poor" ? `You need ${res.short} more XP for that.` : "That one isn't available.";
@@ -766,6 +780,9 @@ function mark(correct){
   session.results[session.pos] = correct ? "good" : "bad";
   (session.meta || (session.meta = []))[session.pos] = {hinted:(session.hintLevel||0)>0, attempts:session.attempts||0, typed:!!session.autoResult};
   const xpBefore = state.xp;
+  const lvBefore = level();
+  const topicObj = session.mode==="topic" ? TOPICS.find(x=>x.id===session.topicId) : null;
+  const wasMastered = topicObj ? isTopicMastered(topicObj) : false;
   if(session.mode==="placement"){
     if(correct) session.correctCount++;
   }else if(correct){
@@ -780,6 +797,13 @@ function mark(correct){
     state.xp += 2;
   }
   session.xpEarned = (session.xpEarned||0) + (state.xp - xpBefore);
+  if(session.mode!=="placement"){
+    // One sound per answer, the most meaningful first: topic mastered > level up > streak of 5 > right/wrong.
+    if(correct && topicObj && !wasMastered && isTopicMastered(topicObj)) playSound("mastered");
+    else if(level() > lvBefore) playSound("levelup");
+    else if(correct && streak>0 && streak%5===0) playSound("streak");
+    else playSound(correct ? "correct" : "wrong");
+  }
   // Two misses in a row on real practice: slip a warm-up in next.
   if(session.mode==="topic" && p.kind==="practice"){
     session.missStreak = nextMissStreak(session.missStreak||0, {correct, warmup:!!p.scaffold});
@@ -994,6 +1018,7 @@ function renderHome(){
       <input type="text" id="nameInput" class="name-input${state.name ? " has-name" : ""}" placeholder="Add your name" value="${escapeHtml(state.name||"")}" maxlength="24" aria-label="Your name, used to personalize messages">
     </div>
     <button type="button" class="theme-toggle" id="dictionaryBtn" title="Terminology &amp; formula dictionary">📖 Dictionary</button>
+    <button type="button" class="theme-toggle" id="soundBtn" aria-pressed="${!soundMuted()}" title="Turn sound effects on or off">${soundMuted() ? "🔇 Muted" : "🔊 Sound"}</button>
     <button type="button" class="theme-toggle" id="shopBtn" title="Spend XP on new characters and frames">🛍️ Shop</button>
     <button type="button" class="theme-toggle" id="placementBtn" title="Short check-in to find where to start">🧭 ${state.placement ? "Retake check-in" : "Check-in"}</button>
     <button type="button" class="theme-toggle" id="themeToggleBtn" aria-haspopup="listbox" aria-expanded="${themePanelOpen}" title="Change visual theme">
@@ -1137,6 +1162,11 @@ function renderHome(){
     saveState();
   });
 
+  document.getElementById("soundBtn").addEventListener("click", ()=>{
+    setSoundMuted(!soundMuted());
+    render();
+    playSound("correct"); // a little preview when turning it on (silent when turning it off)
+  });
   document.getElementById("shopBtn").addEventListener("click", openShop);
   document.getElementById("placementBtn").addEventListener("click", startPlacement);
   const placementCardBtn = document.getElementById("placementCardBtn");
