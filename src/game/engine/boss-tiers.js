@@ -13,20 +13,25 @@ import { randInt, randIntNonZero, choice, pmTerm, linTerm } from "./generators.j
    generator functions (bossHellGenerators, below), built the same
    "backward construction" way as every other generator in this file. */
 export const BOSS_LEVELS = [
-  {id:"easy", name:"Easy", icon:"🍃", color:"var(--good)", xpPerCorrect:10,
+  {id:"easy", name:"Easy", es:"Fácil", icon:"🍃", color:"var(--good)", xpPerCorrect:10,
    tagline:"Straightforward stuff — if you've got the basics, you've got this.",
+   esTagline:"Cosas sencillas — si dominas lo básico, lo tienes.",
    count:8, topics:[1,2,3,20,21,4,17,11]},
-  {id:"medium", name:"Medium", icon:"🧱", color:"var(--accent-2)", xpPerCorrect:16,
+  {id:"medium", name:"Medium", es:"Medio", icon:"🧱", color:"var(--accent-2)", xpPerCorrect:16,
    tagline:"A bit trickier — negatives, two steps, keep your head up.",
+   esTagline:"Un poco más difícil — negativos, dos pasos, mantén la cabeza en alto.",
    count:8, topics:[6,22,25,7,10,5,18,28]},
-  {id:"hard", name:"Hard", icon:"🧬", color:"var(--cat-factoring)", xpPerCorrect:22,
+  {id:"hard", name:"Hard", es:"Difícil", icon:"🧬", color:"var(--cat-factoring)", xpPerCorrect:22,
    tagline:"Requires real thought — multi-step problems, no shortcuts.",
+   esTagline:"Requiere pensar de verdad — problemas de varios pasos, sin atajos.",
    count:8, topics:[13,25,9,27,21,28,19,14]},
-  {id:"nightmare", name:"Nightmare", icon:"💀", color:"var(--bad)", xpPerCorrect:30,
+  {id:"nightmare", name:"Nightmare", es:"Pesadilla", icon:"💀", color:"var(--bad)", xpPerCorrect:30,
    tagline:"Every single problem bites — not one easy one in sight.",
+   esTagline:"Cada problema muerde — ni uno fácil a la vista.",
    count:8, topics:[15,23,29,27,9,13,28,19]},
-  {id:"hellmode", name:"Hell Mode", icon:"🔥", color:"#8b2fc9", xpPerCorrect:42,
+  {id:"hellmode", name:"Hell Mode", es:"Modo Infierno", icon:"🔥", color:"#8b2fc9", xpPerCorrect:42,
    tagline:"Extreme difficulty — stacked methods, and a couple of questions that reach past what's taught here.",
+   esTagline:"Dificultad extrema — métodos combinados y un par de preguntas que van más allá de lo que se enseña aquí.",
    count:6, generator:true},
 ];
 

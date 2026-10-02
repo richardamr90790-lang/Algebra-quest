@@ -1,6 +1,7 @@
 // Progress report for one learner, built from their saved state. Pure logic, no DOM.
 import { EMPTY_STATS } from "./achievements.js";
 import { dueTopics, nextDueDay } from "./review.js";
+import { L } from "./i18n.js";
 
 export const ACTIVITY_LIMIT = 30;
 export const RECENT_SHOWN = 10;
@@ -36,7 +37,7 @@ export function buildReport(state, topics, { regionOrder, labels, problemCount, 
     })
     .filter(Boolean);
 
-  const title = (id) => { const t = topics.find((x) => x.id === Number(id)); return t ? t.title : `Topic ${id}`; };
+  const title = (id) => { const t = topics.find((x) => x.id === Number(id)); return t ? t.title : L(`Topic ${id}`, `Tema ${id}`); };
   const review = state.review || {};
   const due = dueTopics(review, now);
 
@@ -44,10 +45,10 @@ export function buildReport(state, topics, { regionOrder, labels, problemCount, 
   const attention = [];
   const seen = new Set();
   const add = (kind, key, text) => { const k = kind + key; if (!seen.has(k)) { seen.add(k); attention.push({ kind, text }); } };
-  for (const [id, e] of Object.entries(review)) if (e && e.ok === false) add("missed", id, `${title(id)}: missed in the last review`);
-  for (const r of regions) if (r.checkin === "needs") add("checkin", r.cat, `${r.label}: needs work (from the check-in)`);
-  for (const id of due) add("due", id, `${title(id)}: review is due`);
-  for (const r of regions) if (r.checkin === "getting") add("checkin-getting", r.cat, `${r.label}: getting there (from the check-in)`);
+  for (const [id, e] of Object.entries(review)) if (e && e.ok === false) add("missed", id, L(`${title(id)}: missed in the last review`, `${title(id)}: fallado en el último repaso`));
+  for (const r of regions) if (r.checkin === "needs") add("checkin", r.cat, L(`${r.label}: needs work (from the check-in)`, `${r.label}: necesita trabajo (según el chequeo)`));
+  for (const id of due) add("due", id, L(`${title(id)}: review is due`, `${title(id)}: toca repasar`));
+  for (const r of regions) if (r.checkin === "getting") add("checkin-getting", r.cat, L(`${r.label}: getting there (from the check-in)`, `${r.label}: en camino (según el chequeo)`));
 
   const activity = (Array.isArray(state.activity) ? state.activity : []).slice().sort((a, b) => b.at - a.at);
   const stats = { ...EMPTY_STATS, ...(state.stats || {}) };

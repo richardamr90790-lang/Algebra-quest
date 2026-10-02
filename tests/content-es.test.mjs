@@ -31,3 +31,15 @@ test("translations keep the same numbers and symbols", () => {
   const bad = Object.entries(CONTENT_ES).filter(([en, es]) => !/\d(st|nd|rd|th)\b/.test(en) && mathBits(en) !== mathBits(es)).map(([en, es]) => [en, es]);
   assert.deepEqual(bad.slice(0, 5), [], `${bad.length} numeric mismatches`);
 });
+
+test("switching language rewrites topics in place and back again", async () => {
+  const { TOPICS } = await import("../src/game/data/topics.js");
+  const { loadContentTable, applyContentLanguage } = await import("../src/game/localize.js");
+  const en = JSON.stringify(TOPICS);
+  await loadContentTable("es");
+  applyContentLanguage("es");
+  assert.notEqual(JSON.stringify(TOPICS), en);
+  assert.equal(TOPICS[0].title, "Reglas de los exponentes");
+  applyContentLanguage("en");
+  assert.equal(JSON.stringify(TOPICS), en);
+});

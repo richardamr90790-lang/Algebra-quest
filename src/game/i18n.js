@@ -73,3 +73,6 @@ export function tIn(l, key, params) {
 export const L = (en, es) => (lang === "es" ? es : en);
 
 export const dictionaries = DICTS;
+
+// Locale for dates and times: undefined keeps the browser's own choice in English; Dominican Spanish otherwise.
+export const locale = () => (lang === "es" ? "es-DO" : undefined);

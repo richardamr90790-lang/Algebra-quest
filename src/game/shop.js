@@ -6,25 +6,25 @@
 
 export const SHOP_ITEMS = [
   // Premium themes (appear in the theme picker once owned)
-  { id: "glam", kind: "theme", icon: "💖", label: "Glam Paradise", price: 800 },
-  { id: "tide", kind: "theme", icon: "🧜", label: "Mermaid Tide",  price: 800 },
-  { id: "holo", kind: "theme", icon: "💿", label: "Holo Pop",      price: 900 },
+  { id: "glam", kind: "theme", icon: "💖", label: "Glam Paradise", es: "Paraíso Glam", price: 800 },
+  { id: "tide", kind: "theme", icon: "🧜", label: "Mermaid Tide", es: "Marea de Sirena",  price: 800 },
+  { id: "holo", kind: "theme", icon: "💿", label: "Holo Pop", es: "Holo Pop",      price: 900 },
   // Characters (shown in the avatar picker once owned)
-  { id: "rocket",    kind: "avatar", icon: "🚀",   label: "Rocket",     price: 150 },
-  { id: "trex",      kind: "avatar", icon: "🦖",   label: "T-Rex",      price: 150 },
-  { id: "shark",     kind: "avatar", icon: "🦈",   label: "Shark",      price: 200 },
-  { id: "wolf",      kind: "avatar", icon: "🐺",   label: "Wolf",       price: 200 },
-  { id: "eagle",     kind: "avatar", icon: "🦅",   label: "Eagle",      price: 250 },
-  { id: "tiger",     kind: "avatar", icon: "🐯",   label: "Tiger",      price: 250 },
-  { id: "astronaut", kind: "avatar", icon: "🧑‍🚀", label: "Astronaut",  price: 350 },
-  { id: "hero",      kind: "avatar", icon: "🦸",   label: "Hero",       price: 350 },
-  { id: "genie",     kind: "avatar", icon: "🧞",   label: "Genie",      price: 450 },
-  { id: "mermaid",   kind: "avatar", icon: "🧜",   label: "Mermaid",    price: 450 },
+  { id: "rocket",    kind: "avatar", icon: "🚀",   label: "Rocket", es: "Cohete",     price: 150 },
+  { id: "trex",      kind: "avatar", icon: "🦖",   label: "T-Rex", es: "T-Rex",      price: 150 },
+  { id: "shark",     kind: "avatar", icon: "🦈",   label: "Shark", es: "Tiburón",      price: 200 },
+  { id: "wolf",      kind: "avatar", icon: "🐺",   label: "Wolf", es: "Lobo",       price: 200 },
+  { id: "eagle",     kind: "avatar", icon: "🦅",   label: "Eagle", es: "Águila",      price: 250 },
+  { id: "tiger",     kind: "avatar", icon: "🐯",   label: "Tiger", es: "Tigre",      price: 250 },
+  { id: "astronaut", kind: "avatar", icon: "🧑‍🚀", label: "Astronaut", es: "Astronauta",  price: 350 },
+  { id: "hero",      kind: "avatar", icon: "🦸",   label: "Hero", es: "Héroe",       price: 350 },
+  { id: "genie",     kind: "avatar", icon: "🧞",   label: "Genie", es: "Genio",      price: 450 },
+  { id: "mermaid",   kind: "avatar", icon: "🧜",   label: "Mermaid", es: "Sirena",    price: 450 },
   // Frames (a ring around the character badge)
-  { id: "gold",      kind: "frame",  icon: "🟡",   label: "Gold Ring",     price: 250 },
-  { id: "flame",     kind: "frame",  icon: "🔥",   label: "Flame Ring",    price: 350 },
-  { id: "rainbow",   kind: "frame",  icon: "🌈",   label: "Rainbow Ring",  price: 450 },
-  { id: "galaxy",    kind: "frame",  icon: "🌌",   label: "Galaxy Ring",   price: 600 },
+  { id: "gold",      kind: "frame",  icon: "🟡",   label: "Gold Ring", es: "Aro Dorado",     price: 250 },
+  { id: "flame",     kind: "frame",  icon: "🔥",   label: "Flame Ring", es: "Aro de Fuego",    price: 350 },
+  { id: "rainbow",   kind: "frame",  icon: "🌈",   label: "Rainbow Ring", es: "Aro Arcoíris",  price: 450 },
+  { id: "galaxy",    kind: "frame",  icon: "🌌",   label: "Galaxy Ring", es: "Aro Galáctico",   price: 600 },
 ];
 
 export const itemById = (id) => SHOP_ITEMS.find((i) => i.id === id) || null;
