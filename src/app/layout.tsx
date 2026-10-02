@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Baloo_2, Nunito } from "next/font/google";
 import "./globals.css";
 import "./game.css";
+import "./shell.css";
 
 const baloo = Baloo_2({
   subsets: ["latin"],

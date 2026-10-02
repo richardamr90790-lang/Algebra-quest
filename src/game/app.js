@@ -28,30 +28,45 @@ function rerollTopicProblems(topicId){
   if(!state.customProblems) state.customProblems = {};
   state.customProblems[topicId] = fresh;
   state.mastered[topicId] = [];
+  markTopicReset(topicId);
   if(state.masteredDates) delete state.masteredDates[topicId];
+  markTopicReset(topicId);
   saveState();
   render();
+}
+function markTopicReset(topicId){
+  if(!state.topicResets) state.topicResets = {};
+  state.topicResets[topicId] = Date.now();
 }
 
 
 /* ===================== STATE ===================== */
-const STORAGE_KEY = "algebraQuestState_v1";
+export const LEGACY_STORAGE_KEY = "algebraQuestState_v1";
+// Which localStorage slot the current learner is saved in, and an optional hook
+// called after every save (used to sync signed-in learners to the server).
+let storageKey = LEGACY_STORAGE_KEY;
+let onSaveHook = null;
 function defaultState(){
-  return {xp:0, bestStreak:0, mastered:{}, customProblems:{}, theme:"clean", name:"", masteredDates:{}, avatar:"root"};
+  return {xp:0, bestStreak:0, mastered:{}, customProblems:{}, theme:"clean", name:"", masteredDates:{}, avatar:"root",
+    updatedAt:0, resetAt:0, topicResets:{}};
+  // updatedAt = ms of the last save; resetAt / topicResets[topicId] = ms of a full / per-topic reset. Used by sync
+  // so a reset on one device isn't undone by merging with another device's older progress.
   // mastered[topicId] = [idx,...]; customProblems[topicId] = [{q,a,...}] when rerolled; theme = selected visual theme id;
   // name = learner's name, used to personalize summary-screen messages; masteredDates[topicId] = ISO date string of when that topic was first fully mastered
   // avatar = id into AVATARS, the little character shown in the mark badge (defaults to the original √ mark)
 }
 function loadState(){
   try{
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(storageKey);
     if(!raw) return defaultState();
     const parsed = JSON.parse(raw);
     return Object.assign(defaultState(), parsed);
   }catch(e){ return defaultState(); }
 }
 function saveState(){
-  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+  state.updatedAt = Date.now();
+  try{ localStorage.setItem(storageKey, JSON.stringify(state)); }catch(e){}
+  if(onSaveHook) onSaveHook(state);
 }
 let state = loadState();
 let streak = 0;
@@ -470,7 +485,7 @@ function mark(correct){
   render();
 }
 function resetProgress(){
-  state = defaultState(); streak=0; saveState(); render();
+  state = defaultState(); state.resetAt = Date.now(); streak=0; saveState(); render();
 }
 function resetTopicProgress(topicId){
   state.mastered[topicId] = [];
@@ -531,17 +546,51 @@ function animateBarWidth(el, fromPct, toPct){
     requestAnimationFrame(()=>{ if(el) el.style.width = toPct+"%"; });
   });
 }
-// "Last displayed" snapshots, seeded from the real saved state at script load so the
-// very first render never animates from 0 — only genuine changes during play do.
-let lastXPDisplayed = xpIntoLevel();
-let lastLevelDisplayed = level();
-let lastProgDisplayed = {};
-TOPICS.forEach(t=>{
-  lastProgDisplayed[t.id] = Math.round((topicMasteredCount(t.id)/getTopicProblems(t).length)*100);
-});
-let celebratedTopics = new Set(
-  TOPICS.filter(t=>topicMasteredCount(t.id)===getTopicProblems(t).length).map(t=>t.id)
-);
+// "Last displayed" snapshots, seeded from the real saved state whenever a learner is
+// loaded so the first render never animates from 0 — only genuine changes during play do.
+let lastXPDisplayed, lastLevelDisplayed, lastProgDisplayed, celebratedTopics;
+function reseedDisplay(){
+  lastXPDisplayed = xpIntoLevel();
+  lastLevelDisplayed = level();
+  lastProgDisplayed = {};
+  TOPICS.forEach(t=>{
+    lastProgDisplayed[t.id] = Math.round((topicMasteredCount(t.id)/getTopicProblems(t).length)*100);
+  });
+  celebratedTopics = new Set(
+    TOPICS.filter(t=>topicMasteredCount(t.id)===getTopicProblems(t).length).map(t=>t.id)
+  );
+}
+reseedDisplay();
+
+/* ===================== PROFILE SWITCHING (used by the React shell) =====================
+   loadLearner() points the game at a storage slot and optionally seeds it with a
+   starting state (e.g. merged from the server), then re-renders from the home screen. */
+/** @param {{key?: string, initial?: object | null, onSave?: ((state: any) => void) | null}} [opts] */
+export function loadLearner({key, initial=null, onSave=null} = {}){
+  storageKey = key || LEGACY_STORAGE_KEY;
+  onSaveHook = onSave || null;
+  state = initial ? Object.assign(defaultState(), initial) : loadState();
+  try{ localStorage.setItem(storageKey, JSON.stringify(state)); }catch(e){}
+  streak = 0; view = "home"; session = null;
+  applyTheme(state.theme);
+  reseedDisplay();
+  render();
+}
+// A newer copy of the current learner's progress arrived from the server.
+/** @param {object} next */
+export function applyRemoteState(next){
+  state = Object.assign(defaultState(), next);
+  try{ localStorage.setItem(storageKey, JSON.stringify(state)); }catch(e){}
+  applyTheme(state.theme);
+  if(view==="home"){ reseedDisplay(); render(); }
+}
+/** @param {string} key */
+export function readLocalState(key){
+  try{ const raw = localStorage.getItem(key); return raw ? Object.assign(defaultState(), JSON.parse(raw)) : null; }
+  catch(e){ return null; }
+}
+export function currentState(){ return state; }
+export function stopGame(){ if(window.speechSynthesis) speechSynthesis.cancel(); }
 
 function render(){
   if(window.speechSynthesis) speechSynthesis.cancel();
