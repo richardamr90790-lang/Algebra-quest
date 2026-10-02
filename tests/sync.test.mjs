@@ -130,3 +130,10 @@ test("daily challenge merges: latest day wins, count is the larger, a later rese
   assert.equal(reset.daily, null);
   assert.equal(reset.dailyCount, 0);
 });
+
+test("shop purchases from two devices are both kept, and a later reset clears them", () => {
+  const a = s({ updatedAt: 100, xp: 500, owned: ["rocket"] });
+  const b = s({ updatedAt: 200, xp: 500, owned: ["gold"] });
+  assert.deepEqual(mergeState(a, b).owned.sort(), ["gold", "rocket"]);
+  assert.deepEqual(mergeState(a, s({ updatedAt: 300, resetAt: 300 })).owned, []);
+});

@@ -9,6 +9,7 @@ import { recordResult, dueTopics, nextDueDay, passed, localDay, daysBetween } fr
 import { buildPlan, scoreRegions, recommendStart, REGION_ORDER } from "./placement.js";
 import { shouldInsertWarmup, nextMissStreak, isPerfectRun } from "./adaptive.js";
 import { dailyProblems, dailyDoneToday, DAILY_XP_PER_CORRECT, DAILY_BONUS_XP } from "./daily.js";
+import { SHOP_ITEMS, itemById, balance, buy, canUse, isOwned } from "./shop.js";
 
 function checkAnswerFor(p){ return p.check || p.a; }
 
@@ -53,8 +54,9 @@ let storageKey = LEGACY_STORAGE_KEY;
 let onSaveHook = null;
 function defaultState(){
   return {xp:0, bestStreak:0, mastered:{}, customProblems:{}, theme:"clean", name:"", masteredDates:{}, avatar:"root",
-    updatedAt:0, resetAt:0, topicResets:{}, review:{}, placement:null, placementDismissed:false, daily:null, dailyCount:0};
+    updatedAt:0, resetAt:0, topicResets:{}, review:{}, placement:null, placementDismissed:false, daily:null, dailyCount:0, owned:[], frame:""};
   // review[topicId] = {box, due, last, at} spaced-review schedule (see review.js).
+  // owned = shop item ids; frame = equipped avatar frame id or "" (see shop.js).
   // daily = {day, correct, total} for the last completed Daily Challenge; dailyCount = challenges completed in all.
   // placement = {at, regions:{cat:{correct,total,level}}, start:topicId|null} from the check-in; placementDismissed = card hidden.
   // updatedAt = ms of the last save; resetAt / topicResets[topicId] = ms of a full / per-topic reset. Used by sync
@@ -94,6 +96,13 @@ function themeName(id){ const t = THEMES.find(x=>x.id===id); return t ? t.name :
 function applyTheme(id){
   const valid = THEMES.some(t=>t.id===id) ? id : "clean";
   document.documentElement.setAttribute("data-theme", valid);
+  applyFrame();
+}
+// The equipped avatar frame is a data attribute on <html>; CSS draws the ring around every character badge.
+function applyFrame(){
+  const f = state && state.frame && canUse(state.owned, "frame", state.frame) ? state.frame : "";
+  if(f) document.documentElement.setAttribute("data-frame", f);
+  else document.documentElement.removeAttribute("data-frame");
 }
 applyTheme(state.theme);
 
@@ -123,7 +132,12 @@ const AVATARS = [
   {id:"octopus",       icon:"🐙", label:"Octopus"},
   {id:"raccoon",       icon:"🦝", label:"Raccoon"},
 ];
-function avatarIcon(id){ const a = AVATARS.find(x=>x.id===id); return a ? a.icon : "√"; }
+const FREE_AVATAR_IDS = AVATARS.map(a=>a.id);
+function allowedAvatars(){
+  const owned = SHOP_ITEMS.filter(i=>i.kind==="avatar" && isOwned(state.owned, i.id)).map(i=>({id:i.id, icon:i.icon, label:i.label}));
+  return AVATARS.concat(owned);
+}
+function avatarIcon(id){ const a = allowedAvatars().find(x=>x.id===id); return a ? a.icon : "√"; }
 let themePanelOpen = false;
 let avatarPanelOpen = false;
 let nameSaveTimer = null;
@@ -137,7 +151,7 @@ function setTheme(id){
   render();
 }
 function setAvatar(id){
-  if(!AVATARS.some(a=>a.id===id)) return;
+  if(!allowedAvatars().some(a=>a.id===id)) return;
   state.avatar = id;
   saveState();
   avatarPanelOpen = false;
@@ -412,6 +426,79 @@ function dailyCardHTML(){
   return `<div class="daily-card"><div class="review-text"><div class="review-title">⭐ Daily Challenge</div>
     <div class="review-sub">5 mixed questions, the same for everyone today · +${DAILY_BONUS_XP} bonus XP</div></div>
     <button type="button" class="review-go" id="dailyBtn">Play</button></div>`;
+}
+
+// ---- Shop: premium characters and avatar frames, bought with spendable XP (see shop.js) ----
+let pendingBuy = null;
+let shopMsg = "";
+function openShop(){ view = "shop"; pendingBuy = null; shopMsg = ""; render(); }
+function shopItemHTML(item){
+  const owned = isOwned(state.owned, item.id);
+  const equipped = item.kind==="avatar" ? state.avatar===item.id : state.frame===item.id;
+  const visual = item.kind==="avatar"
+    ? `<span class="shop-icon">${item.icon}</span>`
+    : `<span class="shop-icon"><span class="frame-prev frame-${item.id}">√</span></span>`;
+  let action;
+  if(owned){
+    action = equipped
+      ? `<button type="button" class="shop-btn on" data-unequip="${item.id}" aria-pressed="true">✓ Equipped</button>`
+      : `<button type="button" class="shop-btn" data-equip="${item.id}">Equip</button>`;
+  }else{
+    const can = buy(state.xp, state.owned, item.id).ok;
+    const confirming = pendingBuy===item.id;
+    action = `<button type="button" class="shop-btn buy${confirming ? " confirm" : ""}" data-buy="${item.id}" ${can ? "" : "disabled"}>${
+      !can ? `${item.price} XP` : confirming ? "Tap again to buy" : `Buy · ${item.price} XP`}</button>`;
+  }
+  return `<div class="shop-item${owned ? " owned" : ""}">${visual}<div class="shop-name">${item.label}</div>${action}</div>`;
+}
+function renderShop(){
+  const bal = balance(state.xp, state.owned);
+  const section = (kind,title)=>`<h3 class="shop-h">${title}</h3><div class="shop-grid">${SHOP_ITEMS.filter(i=>i.kind===kind).map(shopItemHTML).join("")}</div>`;
+  app.innerHTML = `
+  <div class="view-enter">
+  <div class="topbar">
+    <div class="brand">
+      <div class="mark">${avatarIcon(state.avatar)}</div>
+      <div><h1>Shop</h1><p>Spend XP on new looks. Your level never goes down.</p></div>
+    </div>
+    ${statsBarHTML()}
+  </div>
+  <div class="shop-balance">You have <strong id="shopBalance">${bal}</strong> XP to spend</div>
+  ${shopMsg ? `<div class="shop-msg" role="status">${shopMsg}</div>` : ""}
+  ${section("avatar","Characters")}
+  ${section("frame","Frames")}
+  <div class="btn-row"><button class="btn btn-ghost" id="homeBtn">Back to map</button></div>
+  </div>`;
+  document.getElementById("homeBtn").addEventListener("click", backHome);
+  app.querySelectorAll("[data-buy]").forEach(btn=>btn.addEventListener("click", ()=>{
+    const id = btn.dataset.buy;
+    if(pendingBuy!==id){ pendingBuy = id; shopMsg = ""; render(); return; }
+    const res = buy(state.xp, state.owned, id);
+    pendingBuy = null;
+    if(res.ok){
+      state.owned = res.owned;
+      const item = itemById(id);
+      if(item.kind==="avatar") state.avatar = id; else state.frame = id;   // equip what you just bought
+      saveState(); applyFrame();
+      shopMsg = `${item.label} is yours and equipped!`;
+      burstConfetti();
+    }else{
+      shopMsg = res.reason==="poor" ? `You need ${res.short} more XP for that.` : "That one isn't available.";
+    }
+    render();
+  }));
+  app.querySelectorAll("[data-equip]").forEach(btn=>btn.addEventListener("click", ()=>{
+    const item = itemById(btn.dataset.equip);
+    if(!item || !canUse(state.owned, item.kind, item.id, FREE_AVATAR_IDS)) return;
+    if(item.kind==="avatar") state.avatar = item.id; else state.frame = item.id;
+    saveState(); applyFrame(); shopMsg = ""; render();
+  }));
+  app.querySelectorAll("[data-unequip]").forEach(btn=>btn.addEventListener("click", ()=>{
+    const item = itemById(btn.dataset.unequip);
+    if(!item) return;
+    if(item.kind==="frame") state.frame = ""; else state.avatar = "root";
+    saveState(); applyFrame(); shopMsg = ""; render();
+  }));
 }
 
 // ---- Placement check-in ----
@@ -718,7 +805,7 @@ function mark(correct){
   render();
 }
 function resetProgress(){
-  state = defaultState(); state.resetAt = Date.now(); streak=0; saveState(); render();
+  state = defaultState(); state.resetAt = Date.now(); streak=0; saveState(); applyTheme(state.theme); render();
 }
 function resetTopicProgress(topicId){
   state.mastered[topicId] = [];
@@ -836,6 +923,7 @@ function render(){
   }
   if(view==="summary") return renderSummary();
   if(view==="dictionary") return renderDictionary();
+  if(view==="shop") return renderShop();
 }
 
 function statsBarHTML(){
@@ -859,7 +947,7 @@ function themePanelHTML(){
 }
 
 function avatarPanelHTML(){
-  const options = AVATARS.map(a=>{
+  const options = allowedAvatars().map(a=>{
     const pressed = (state.avatar||"root")===a.id;
     return `<button type="button" class="avatar-swatch" data-avatar-pick="${a.id}" role="option" aria-pressed="${pressed}" title="${a.label}">
       <span class="avatar-swatch-icon" aria-hidden="true">${a.icon}</span>
@@ -906,6 +994,7 @@ function renderHome(){
       <input type="text" id="nameInput" class="name-input${state.name ? " has-name" : ""}" placeholder="Add your name" value="${escapeHtml(state.name||"")}" maxlength="24" aria-label="Your name, used to personalize messages">
     </div>
     <button type="button" class="theme-toggle" id="dictionaryBtn" title="Terminology &amp; formula dictionary">📖 Dictionary</button>
+    <button type="button" class="theme-toggle" id="shopBtn" title="Spend XP on new characters and frames">🛍️ Shop</button>
     <button type="button" class="theme-toggle" id="placementBtn" title="Short check-in to find where to start">🧭 ${state.placement ? "Retake check-in" : "Check-in"}</button>
     <button type="button" class="theme-toggle" id="themeToggleBtn" aria-haspopup="listbox" aria-expanded="${themePanelOpen}" title="Change visual theme">
       <span class="swatch-dot" style="--sw-a:${curTheme.a};--sw-b:${curTheme.b};--sw-c:${curTheme.c}" aria-hidden="true"></span>
@@ -1048,6 +1137,7 @@ function renderHome(){
     saveState();
   });
 
+  document.getElementById("shopBtn").addEventListener("click", openShop);
   document.getElementById("placementBtn").addEventListener("click", startPlacement);
   const placementCardBtn = document.getElementById("placementCardBtn");
   if(placementCardBtn) placementCardBtn.addEventListener("click", startPlacement);

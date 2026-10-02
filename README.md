@@ -11,6 +11,7 @@ npm install
 npm run dev      # http://localhost:3000
 npm test         # engine, backup and sync unit tests
 npm run e2e:local  # browser test: offline, backup (build without Supabase keys on :3100)
+npm run e2e:shop   # browser test: shop, equipping, frames (build without Supabase keys on :3100)
 npm run e2e:daily  # browser test: Daily Challenge incl. a changing date (build without Supabase keys on :3100)
 npm run e2e:adaptive # browser test: warm-ups and perfect-run scheduling (build without Supabase keys on :3100)
 npm run e2e:placement # browser test: the check-in (build without Supabase keys on :3100)
@@ -34,6 +35,7 @@ npm run build && npm start
 | `supabase/migrations/` | Database schema + row-level security |
 | `e2e/` | Playwright tests against a mocked Supabase |
 | `src/game/engine/mistakes.js` | Spots common slips in a wrong answer (sign, flipped fraction, partial solutions...) |
+| `src/game/shop.js` | Cosmetics catalog, balance and purchase rules (pure logic) |
 | `src/game/daily.js` | Daily Challenge: date-seeded questions, plan and constants (pure logic) |
 | `src/game/adaptive.js` | Warm-up trigger and perfect-run rules (pure logic) |
 | `src/game/placement.js` | Check-in plan, per-region scoring, suggested start (pure logic) |
@@ -58,5 +60,5 @@ Merge to `main`; the host (Vercel) redeploys. Installed copies pick up the new v
 1. Accounts and synced progress (Supabase), learner profiles (this)
 2. Learning engine: spaced review (done), hints and mistake-aware feedback (done), placement check-in (done), gentle adaptive difficulty (done), unlimited question variations
 3. Parent/teacher dashboard and reports
-4. Engagement: daily challenge (done), avatar shop, sound, achievements (no daily streak, by choice)
+4. Engagement: daily challenge (done), avatar shop (done), sound, achievements (no daily streak, by choice)
 5. Accessibility, mobile polish, analytics

@@ -7,6 +7,7 @@
 // was last edited before the reset happened.
 
 import { mergeReview } from "./review.js";
+import { mergeOwned } from "./shop.js";
 
 const asObj = (v) => (v && typeof v === "object" && !Array.isArray(v) ? v : {});
 const ms = (v) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
@@ -58,6 +59,9 @@ export function mergeState(a, b) {
   const daily = counting.map((s) => s.daily).filter(Boolean).sort((x, y) => (x.day < y.day ? 1 : x.day > y.day ? -1 : 0))[0] || null;
   const dailyCount = Math.max(0, ...counting.map((s) => ms(s.dailyCount)));
 
+  // Shop: owned items are a union (only copies not wiped by a later reset count).
+  const owned = counting.reduce((acc, s) => mergeOwned(acc, s.owned), []);
+
   // Re-rolled practice sets: take the newer side's, falling back to the older's.
   const customProblems = { ...asObj(older.customProblems), ...asObj(newer.customProblems) };
   for (const id of Object.keys(customProblems)) {
@@ -76,6 +80,7 @@ export function mergeState(a, b) {
     placementDismissed,
     daily,
     dailyCount,
+    owned,
     review: mergeReview(asObj(a.review), asObj(b.review), { resetAt, topicResets }),
     resetAt,
     topicResets,

@@ -994,3 +994,27 @@ body{position:relative}
 }
 .daily-card.done{border-color:var(--border)}
 .daily-bonus{margin:6px 0 2px;font-weight:800;color:var(--accent-2)}
+
+/* ---------- shop ---------- */
+.shop-balance{margin:12px 0 4px;font-weight:800;font-size:15px;color:var(--fg)}
+.shop-balance strong{color:var(--accent-2);font-family:var(--font-display);font-size:20px}
+.shop-msg{margin:6px 0;padding:8px 12px;border-radius:12px;font-weight:800;font-size:14px;background:color-mix(in srgb,var(--accent) 12%,var(--surface));border:1px solid var(--border)}
+.shop-h{margin:18px 0 8px;font-family:var(--font-display);font-size:18px}
+.shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.shop-item{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 8px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);text-align:center}
+.shop-item.owned{border-color:color-mix(in srgb,var(--good) 45%,var(--border))}
+.shop-icon{font-size:38px;line-height:1;min-height:46px;display:flex;align-items:center}
+.shop-name{font-weight:800;font-size:14px}
+.shop-btn{width:100%;border:1px solid var(--border);background:var(--surface-2);color:var(--fg);border-radius:12px;padding:8px 6px;cursor:pointer;font:800 13px var(--font-body)}
+.shop-btn.buy:not(:disabled){background:var(--accent);color:#fff;border-color:transparent}
+.shop-btn.buy.confirm{background:var(--accent-2)}
+.shop-btn:disabled{opacity:.55;cursor:default}
+.shop-btn.on{background:color-mix(in srgb,var(--good) 16%,var(--surface));color:var(--good)}
+.shop-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* avatar frames: a ring around the character badge, or the same ring on a shop preview */
+.frame-prev{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:14px;background:var(--surface-2);font-weight:800;color:var(--fg)}
+html[data-frame="gold"] .brand .mark,.frame-gold{box-shadow:0 0 0 3px #f5c542,0 0 14px rgba(245,197,66,.65)}
+html[data-frame="flame"] .brand .mark,.frame-flame{box-shadow:0 0 0 3px #ff7a1a,0 0 16px rgba(255,90,20,.7),0 -5px 14px rgba(255,200,40,.55)}
+html[data-frame="rainbow"] .brand .mark,.frame-rainbow{box-shadow:0 0 0 3px #ff4d6d,0 0 0 6px #ffd24d,0 0 0 9px #4dd2ff,0 0 14px rgba(140,90,255,.5)}
+html[data-frame="galaxy"] .brand .mark,.frame-galaxy{box-shadow:0 0 0 3px #7c5cff,0 0 0 5px #0b1022,0 0 18px rgba(124,92,255,.8),0 0 30px rgba(77,210,255,.4)}
