@@ -6,6 +6,7 @@ import { checkEquivalence, matchAnyOrder } from "./engine/equivalence.js";
 import { diagnoseMistake } from "./engine/mistakes.js";
 import { serializeBackup, parseBackup, backupFileName } from "./backup.js";
 import { recordResult, dueTopics, nextDueDay, passed, localDay, daysBetween } from "./review.js";
+import { buildPlan, scoreRegions, recommendStart, REGION_ORDER } from "./placement.js";
 
 function checkAnswerFor(p){ return p.check || p.a; }
 
@@ -50,8 +51,9 @@ let storageKey = LEGACY_STORAGE_KEY;
 let onSaveHook = null;
 function defaultState(){
   return {xp:0, bestStreak:0, mastered:{}, customProblems:{}, theme:"clean", name:"", masteredDates:{}, avatar:"root",
-    updatedAt:0, resetAt:0, topicResets:{}, review:{}};
+    updatedAt:0, resetAt:0, topicResets:{}, review:{}, placement:null, placementDismissed:false};
   // review[topicId] = {box, due, last, at} spaced-review schedule (see review.js).
+  // placement = {at, regions:{cat:{correct,total,level}}, start:topicId|null} from the check-in; placementDismissed = card hidden.
   // updatedAt = ms of the last save; resetAt / topicResets[topicId] = ms of a full / per-topic reset. Used by sync
   // so a reset on one device isn't undone by merging with another device's older progress.
   // mastered[topicId] = [idx,...]; customProblems[topicId] = [{q,a,...}] when rerolled; theme = selected visual theme id;
@@ -350,6 +352,57 @@ function reviewCardHTML(){
   return "";
 }
 
+// ---- Placement check-in ----
+function startPlacement(){
+  const plan = buildPlan(TOPICS, SUGGESTED_ORDER);
+  const pool = [];
+  plan.forEach(({cat, topicIds})=>{
+    const used = {};
+    topicIds.forEach(topicId=>{
+      const t = TOPICS.find(x=>x.id===topicId);
+      const items = ((GENERATORS[topicId] ? GENERATORS[topicId]() : null) || getTopicProblems(t)).slice();
+      for(let i=items.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [items[i],items[j]]=[items[j],items[i]]; }
+      const n = used[topicId] = (used[topicId]||0);
+      used[topicId]++;
+      pool.push({...items[n % items.length], topicId, cat});
+    });
+  });
+  session = {
+    mode:"placement", xpPerCorrect:0,
+    title:"Check-in", cat:null, learnPhase:null, guidedCount:0, practiceCount:pool.length,
+    problems: pool.map((p,idx)=>({...p, idx, kind:"practice"})), pos:0, revealed:false, autoResult:null, attempts:0, retryFlash:false,
+    results:[], correctCount:0, why:null,
+    peekOpen:false, peekPos:0, termsOpen:false, draftAnswer:"", draftBlanks:null,
+  };
+  view = "quest";
+  render();
+}
+function finishPlacement(){
+  const results = session.problems.map((p,i)=>({cat:p.cat, topicId:p.topicId, correct: session.results[i]==="good"}));
+  const regions = scoreRegions(results);
+  const start = recommendStart(regions, results, TOPICS, SUGGESTED_ORDER);
+  state.placement = {at: Date.now(), regions, start};
+  state.placementDismissed = true;
+  saveState();
+}
+function placementCardHTML(){
+  if(state.placement || state.placementDismissed) return "";
+  return `<div class="placement-card">
+    <div class="review-text"><div class="review-title">🧭 Find your starting point</div>
+    <div class="review-sub">A short check-in: 2 questions from each area, about 10 minutes. No hints, no XP, and nothing is graded.</div></div>
+    <div class="placement-actions"><button type="button" class="review-go" id="placementCardBtn">Start check-in</button>
+    <button type="button" class="btn-link" id="placementDismissBtn">Not now</button></div></div>`;
+}
+const PLACEMENT_LEVEL = {
+  solid:{label:"Solid", icon:"✅"}, getting:{label:"Getting there", icon:"🟡"}, needs:{label:"Needs work", icon:"🔁"},
+};
+function placementChip(cat){
+  const row = state.placement && state.placement.regions && state.placement.regions[cat];
+  if(!row) return "";
+  const lv = PLACEMENT_LEVEL[row.level] || PLACEMENT_LEVEL.needs;
+  return `<span class="placement-chip lvl-${row.level}" title="Check-in: ${row.correct} of ${row.total} right">${lv.icon} ${lv.label}</span>`;
+}
+
 function backHome(){
   view = "home"; session = null; render();
 }
@@ -497,12 +550,12 @@ function submitTyped(){
   }
   const p = session.problems[session.pos];
   const matched = checkEquivalence(text, checkAnswerFor(p));
-  const threshold = p.kind==="guided" ? 1 : 2;
+  const threshold = (p.kind==="guided" || session.mode==="placement") ? 1 : 2;
   session.attempts = (session.attempts||0) + 1;
   session.diagnosis = matched ? null : diagnoseMistake(text, checkAnswerFor(p));
   if(!matched && session.attempts < threshold){
     session.retryFlash = true;
-    if(p.kind==="practice" && !(session.hintLevel>0)) session.hintLevel = 1; // a miss shows the rule
+    if(p.kind==="practice" && session.mode!=="placement" && !(session.hintLevel>0)) session.hintLevel = 1; // a miss shows the rule
     render();
     const inp = document.getElementById("answerInput");
     if(inp){ inp.focus(); inp.select(); }
@@ -562,7 +615,9 @@ function submitBlanks(){
 function mark(correct){
   const p = session.problems[session.pos];
   session.results[session.pos] = correct ? "good" : "bad";
-  if(correct){
+  if(session.mode==="placement"){
+    if(correct) session.correctCount++;
+  }else if(correct){
     session.correctCount++;
     streak++;
     if(streak>state.bestStreak) state.bestStreak = streak;
@@ -582,6 +637,7 @@ function mark(correct){
       session.draftAnswer=""; session.draftBlanks=null; session.hintLevel=0; session.diagnosis=null; render();
     }else{
       if(session.mode==="topic" || session.mode==="review") recordReviewResults();
+      if(session.mode==="placement") finishPlacement();
       view="summary"; render();
       if(session.correctCount===session.problems.length) burstConfetti();
     }
@@ -777,13 +833,15 @@ function renderHome(){
       <input type="text" id="nameInput" class="name-input${state.name ? " has-name" : ""}" placeholder="Add your name" value="${escapeHtml(state.name||"")}" maxlength="24" aria-label="Your name, used to personalize messages">
     </div>
     <button type="button" class="theme-toggle" id="dictionaryBtn" title="Terminology &amp; formula dictionary">📖 Dictionary</button>
+    <button type="button" class="theme-toggle" id="placementBtn" title="Short check-in to find where to start">🧭 ${state.placement ? "Retake check-in" : "Check-in"}</button>
     <button type="button" class="theme-toggle" id="themeToggleBtn" aria-haspopup="listbox" aria-expanded="${themePanelOpen}" title="Change visual theme">
       <span class="swatch-dot" style="--sw-a:${curTheme.a};--sw-b:${curTheme.b};--sw-c:${curTheme.c}" aria-hidden="true"></span>
       Theme: ${curTheme.name}
     </button>
     ${themePanelOpen ? themePanelHTML() : ""}
   </div>
-  ${reviewCardHTML()}`;
+  ${reviewCardHTML()}
+  ${placementCardHTML()}`;
 
   // Track which topics just became fully mastered this render, so only those
   // get the one-time badge glow (not every topic that was already mastered before).
@@ -798,7 +856,7 @@ function renderHome(){
     const topics = TOPICS.filter(t=>t.cat===cat)
       .sort((a,b)=> SUGGESTED_ORDER.indexOf(a.id) - SUGGESTED_ORDER.indexOf(b.id));
     const regionCleared = topics.every(isTopicMastered);
-    html += `<div class="region-label"><span class="region-icon" style="--cat:${CAT[cat].color}">${CAT[cat].icon}</span>${CAT[cat].label}${regionCleared ? `<span class="region-cleared">Region cleared ✓</span>` : ""}</div>`;
+    html += `<div class="region-label"><span class="region-icon" style="--cat:${CAT[cat].color}">${CAT[cat].icon}</span>${CAT[cat].label}${placementChip(cat)}${regionCleared ? `<span class="region-cleared">Region cleared ✓</span>` : ""}</div>`;
     html += `<div class="topic-grid">`;
     topics.forEach(t=>{
       displayNum++;
@@ -817,6 +875,7 @@ function renderHome(){
         <button type="button" class="topic-reroll-btn" id="rerollTopic-${t.id}" data-topic-reroll="${t.id}" title="Get new practice problems for this topic">🎲</button>
         <div class="num">${displayNum}</div>
         <div class="ttitle">${t.title}</div>
+        ${state.placement && state.placement.start===t.id ? `<div class="start-here">⭐ Start here</div>` : ""}
         <div class="prog-label">${done} / ${total} mastered${dateLabel ? ` <span class="prog-date">· ${dateLabel}</span>` : ""}</div>
         <div class="prog-track"><div class="prog-fill" data-topic-prog="${t.id}" style="width:${pct}%"></div></div>
       </div>`;
@@ -915,6 +974,11 @@ function renderHome(){
     saveState();
   });
 
+  document.getElementById("placementBtn").addEventListener("click", startPlacement);
+  const placementCardBtn = document.getElementById("placementCardBtn");
+  if(placementCardBtn) placementCardBtn.addEventListener("click", startPlacement);
+  const placementDismissBtn = document.getElementById("placementDismissBtn");
+  if(placementDismissBtn) placementDismissBtn.addEventListener("click", ()=>{ state.placementDismissed = true; saveState(); render(); });
   const reviewBtn = document.getElementById("reviewBtn");
   if(reviewBtn) reviewBtn.addEventListener("click", startReview);
   document.getElementById("dictionaryBtn").addEventListener("click", ()=>{
@@ -1119,7 +1183,7 @@ function renderDictionary(){
 
 function renderQuest(){
   const p = session.problems[session.pos];
-  const crossTopic = session.mode==="boss" || session.mode==="review";
+  const crossTopic = session.mode==="boss" || session.mode==="review" || session.mode==="placement";
   const catColor = crossTopic ? CAT[p.cat].color : CAT[session.cat].color;
   const catIcon = crossTopic ? CAT[p.cat].icon : CAT[session.cat].icon;
   let catLabel;
@@ -1284,15 +1348,15 @@ function renderQuest(){
       const note = session.diagnosis ? session.diagnosis.message : "Give it one more try!";
       html += `<div class="feedback feedback-bad">🤔 Not quite. ${note}</div>`;
     }
-    if(p.kind==="practice") html += hintBoxHTML(p);
+    if(p.kind==="practice" && session.mode!=="placement") html += hintBoxHTML(p);
     html += `
     <div class="answer-input-row">
       <input type="text" id="answerInput" placeholder="Type your answer here…" autocomplete="off" autocapitalize="off" spellcheck="false" value="${escapeHtml(session.draftAnswer||"")}">
       <button class="btn btn-primary" id="checkBtn">Check</button>
     </div>
     <div class="symbol-row">${SYMBOLS.map(s=>`<button type="button" class="symBtn${s.label.includes(" ")?" symBtnWide":""}" data-sym="${s.insert}" title="${s.title}">${escapeHtml(s.label)}</button>`).join("")}</div>
-    ${p.kind==="practice" ? hintButtonHTML(p) : ""}
-    <button class="btn-link" id="skipBtn">I'd rather just reveal the answer</button>
+    ${p.kind==="practice" && session.mode!=="placement" ? hintButtonHTML(p) : ""}
+    <button class="btn-link" id="skipBtn">${session.mode==="placement" ? "I don't know this one" : "I'd rather just reveal the answer"}</button>
     ${p.kind==="guided" ? `<button class="btn-link" id="skipGuidedBtn">Skip guided practice → start the problems</button>` : ""}`;
   }
   html += `</div>`;
@@ -1717,7 +1781,43 @@ function nameGreeting(){
   return n ? `, ${n}` : "";
 }
 
+function renderPlacementSummary(){
+  const res = state.placement || {regions:{}, start:null};
+  const recommended = res.start ? TOPICS.find(t=>t.id===res.start) : null;
+  const rows = REGION_ORDER.map(cat=>{
+    const r = res.regions[cat];
+    if(!r) return "";
+    const lv = PLACEMENT_LEVEL[r.level] || PLACEMENT_LEVEL.needs;
+    return `<div class="pl-row lvl-${r.level}">
+      <span class="pl-name"><span class="region-icon" style="--cat:${CAT[cat].color}">${CAT[cat].icon}</span>${CAT[cat].label}</span>
+      <span class="pl-level">${lv.icon} ${lv.label} <span class="pl-score">${r.correct}/${r.total}</span></span></div>`;
+  }).join("");
+  app.innerHTML = `
+  <div class="view-enter">
+  <div class="topbar">
+    <div class="brand">
+      <div class="mark">${avatarIcon(state.avatar)}</div>
+      <div><h1>Algebra Quest</h1><p>Check-in complete</p></div>
+    </div>
+    ${statsBarHTML()}
+  </div>
+  <div class="summary placement-summary">
+    <div style="font-size:46px">🧭</div>
+    <div class="epic-sub">Here's your map</div>
+    <div class="big">${recommended ? `Nice work${nameGreeting()}! A good place to start is <strong>${recommended.title}</strong>.` : `Wow${nameGreeting()}, you're solid everywhere! Try a Boss Battle.`}</div>
+    <div class="pl-list">${rows}</div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="homeBtn">Back to map</button>
+      ${recommended ? `<button class="btn btn-primary" id="startHereBtn">Start: ${recommended.title} →</button>` : ""}
+    </div>
+  </div>
+  </div>`;
+  document.getElementById("homeBtn").addEventListener("click", backHome);
+  const sh = document.getElementById("startHereBtn");
+  if(sh) sh.addEventListener("click", ()=>startTopic(recommended.id));
+}
 function renderSummary(){
+  if(session.mode==="placement") return renderPlacementSummary();
   const total = session.problems.length;
   const correct = session.correctCount;
   const pct = Math.round((correct/total)*100);

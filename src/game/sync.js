@@ -50,6 +50,10 @@ export function mergeState(a, b) {
     if (set.size && dates.length) masteredDates[id] = dates[0];
   }
 
+  // Placement check-in: keep the most recent result from a copy that wasn't wiped by a later reset.
+  const placement = counting.map((s) => s.placement).filter(Boolean).sort((x, y) => ms(y.at) - ms(x.at))[0] || null;
+  const placementDismissed = counting.some((s) => s.placementDismissed);
+
   // Re-rolled practice sets: take the newer side's, falling back to the older's.
   const customProblems = { ...asObj(older.customProblems), ...asObj(newer.customProblems) };
   for (const id of Object.keys(customProblems)) {
@@ -64,6 +68,8 @@ export function mergeState(a, b) {
     mastered,
     masteredDates,
     customProblems,
+    placement,
+    placementDismissed,
     review: mergeReview(asObj(a.review), asObj(b.review), { resetAt, topicResets }),
     resetAt,
     topicResets,

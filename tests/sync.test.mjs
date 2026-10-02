@@ -106,3 +106,16 @@ test("review schedules merge per topic and follow resets", () => {
   const reset = mergeState(a, s({ updatedAt: 300, resetAt: 300, review: {} }));
   assert.deepEqual(reset.review, {}, "a later full reset clears review");
 });
+
+test("placement result and dismissal merge, and a later reset clears them", () => {
+  const pl = (at, start) => ({ at, start, regions: {} });
+  const a = s({ updatedAt: 100, placement: pl(100, 5) });
+  const b = s({ updatedAt: 200, placementDismissed: true });
+  const m = mergeState(a, b);
+  assert.equal(m.placement.start, 5, "result from the other device is kept");
+  assert.equal(m.placementDismissed, true);
+  const newer = mergeState(s({ updatedAt: 100, placement: pl(100, 5) }), s({ updatedAt: 300, placement: pl(300, 9) }));
+  assert.equal(newer.placement.start, 9, "most recent result wins");
+  const reset = mergeState(a, s({ updatedAt: 400, resetAt: 400, placement: null }));
+  assert.equal(reset.placement, null, "a later full reset clears it");
+});

@@ -952,7 +952,7 @@ body{position:relative}
 #backupMsg{margin-top:6px;font-size:12px;font-weight:700;color:var(--fg-muted);min-height:1em}
 
 /* ---------- daily review card ---------- */
-.review-card{
+.review-card,.placement-card{
   display:flex;align-items:center;gap:12px;justify-content:space-between;margin:14px 0 4px;
   background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px 14px;box-shadow:var(--shadow);
 }
@@ -969,3 +969,20 @@ body{position:relative}
   background:color-mix(in srgb, var(--accent-2) 14%, var(--surface));
   border:1px solid color-mix(in srgb, var(--accent-2) 40%, var(--border));color:var(--fg);
 }
+
+/* ---------- placement check-in ---------- */
+.placement-actions{display:flex;flex-direction:column;align-items:center;gap:4px;flex:none}
+.placement-chip{margin-left:8px;font:800 11px var(--font-body);letter-spacing:0;text-transform:none;padding:2px 8px;border-radius:999px;
+  background:var(--surface-2);border:1px solid var(--border);color:var(--fg-muted);vertical-align:middle}
+.placement-chip.lvl-solid{color:var(--good);border-color:color-mix(in srgb,var(--good) 40%,var(--border))}
+.placement-chip.lvl-needs{color:var(--accent-2);border-color:color-mix(in srgb,var(--accent-2) 45%,var(--border))}
+.start-here{display:inline-block;margin:2px 0 4px;padding:2px 8px;border-radius:999px;font:800 11px var(--font-body);
+  background:var(--accent-2);color:#fff}
+.pl-list{display:grid;gap:8px;margin:16px 0;text-align:left}
+.pl-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;
+  background:var(--surface-2);border:1px solid var(--border);font-weight:800;font-size:14px}
+.pl-name{display:flex;align-items:center;gap:8px}
+.pl-level{white-space:nowrap}
+.pl-score{margin-left:6px;color:var(--fg-muted);font-size:12px}
+.pl-row.lvl-solid .pl-level{color:var(--good)}
+.pl-row.lvl-needs .pl-level{color:var(--accent-2)}
