@@ -909,7 +909,7 @@ body{position:relative}
 :root[data-theme="forest"] body{
   background-color:#142119;
   background-image:linear-gradient(180deg,rgba(5,15,9,.34),rgba(5,13,8,.38)),url("/themes/forest.jpg");
-  background-position:center top;background-size:auto 100%;background-repeat:no-repeat;background-attachment:scroll;
+  background-position:center center;background-size:cover;background-repeat:no-repeat;background-attachment:fixed;
 }
 :root[data-theme="sunset"] body::before,:root[data-theme="forest"] body::before{display:none}
 :root[data-theme="sunset"] .topic-card,:root[data-theme="sunset"] .card,:root[data-theme="sunset"] .summary,:root[data-theme="sunset"] .xpbar-wrap,:root[data-theme="sunset"] .stat-chip,:root[data-theme="sunset"] .boss-mode-btn,:root[data-theme="sunset"] .theme-toggle,:root[data-theme="sunset"] .theme-panel,
