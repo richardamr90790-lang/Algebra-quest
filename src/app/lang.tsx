@@ -24,7 +24,7 @@ export function LangToggle() {
       title={lang === "es" ? "Switch to English" : "Cambiar a español"}
       onClick={() => { setLang(next); rememberDeviceLang(next); }}
     >
-      🌐 {LANG_NAMES[next as "en" | "es"]}
+      <span aria-hidden="true">{next === "es" ? "🇩🇴" : "🇺🇸"}</span> {LANG_NAMES[next as "en" | "es"]}
     </button>
   );
 }
