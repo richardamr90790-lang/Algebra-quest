@@ -5,7 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Learner } from "@/lib/learners";
 
 export function SignInScreen({ db, onLocal }: { db: SupabaseClient; onLocal: () => void }) {
-  const [mode, setMode] = useState<"in" | "up">("in");
+  const [mode, setMode] = useState<"in" | "up" | "forgot">("in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -16,7 +16,12 @@ export function SignInScreen({ db, onLocal }: { db: SupabaseClient; onLocal: () 
     setBusy(true);
     setMsg(null);
     try {
-      if (mode === "in") {
+      if (mode === "forgot") {
+        // The same message whether or not the address has an account, so this can't be used to find out who does.
+        const { error } = await db.auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin });
+        if (error) throw error;
+        setMsg({ kind: "ok", text: "If that email has an account, a reset link is on its way. Check your inbox (and spam), then open the link on this device." });
+      } else if (mode === "in") {
         const { error } = await db.auth.signInWithPassword({ email, password });
         if (error) throw error;
       } else {
@@ -35,27 +40,40 @@ export function SignInScreen({ db, onLocal }: { db: SupabaseClient; onLocal: () 
     <main className="shell">
       <div className="shell-card">
         <h1>Algebra Quest</h1>
-        <p className="lead">{mode === "in" ? "Sign in to save progress to your account." : "Create a parent account. Each learner gets their own profile."}</p>
+        <p className="lead">
+          {mode === "in" && "Sign in to save progress to your account."}
+          {mode === "up" && "Create a parent account. Each learner gets their own profile."}
+          {mode === "forgot" && "Enter your email and we'll send a link to choose a new password."}
+        </p>
         <form onSubmit={submit}>
           <label htmlFor="aq-email">Email</label>
           <input id="aq-email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-          <label htmlFor="aq-pass">Password</label>
-          <input
-            id="aq-pass"
-            type="password"
-            autoComplete={mode === "in" ? "current-password" : "new-password"}
-            required
-            minLength={6}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <button className="shell-btn" disabled={busy}>{busy ? "Please wait…" : mode === "in" ? "Sign in" : "Create account"}</button>
+          {mode !== "forgot" && (
+            <>
+              <label htmlFor="aq-pass">Password</label>
+              <input
+                id="aq-pass"
+                type="password"
+                autoComplete={mode === "in" ? "current-password" : "new-password"}
+                required
+                minLength={6}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </>
+          )}
+          <button className="shell-btn" disabled={busy}>
+            {busy ? "Please wait…" : mode === "in" ? "Sign in" : mode === "up" ? "Create account" : "Send reset link"}
+          </button>
         </form>
         {msg && <div className={`shell-msg ${msg.kind}`} role="status">{msg.text}</div>}
         <div className="shell-row">
           <button className="shell-link" type="button" onClick={() => { setMode(mode === "in" ? "up" : "in"); setMsg(null); }}>
             {mode === "in" ? "Create an account" : "I already have an account"}
           </button>
+          {mode === "in" && (
+            <button className="shell-link" type="button" onClick={() => { setMode("forgot"); setMsg(null); }}>Forgot password?</button>
+          )}
           <button className="shell-link" type="button" onClick={onLocal}>Play without an account</button>
         </div>
       </div>
@@ -143,6 +161,53 @@ export function LearnerPicker({
         )}
         <div className="shell-row">
           <button className="shell-link" onClick={onSignOut}>Sign out</button>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+// Shown after someone opens the reset link from their email: they are signed in with a short-lived
+// recovery session and choose a new password.
+export function RecoveryScreen({ db, onDone, onBack }: { db: SupabaseClient; onDone: () => void; onBack: () => void }) {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setMsg(null);
+    if (password.length < 6) return setMsg("Use at least 6 characters.");
+    if (password !== confirm) return setMsg("The two passwords don't match.");
+    setBusy(true);
+    try {
+      const { error } = await db.auth.updateUser({ password });
+      if (error) throw error;
+      onDone();
+    } catch (err) {
+      const text = err instanceof Error ? err.message : "";
+      setMsg(/session/i.test(text) ? "That reset link has expired or was already used. Go back and ask for a new one." : text || "Something went wrong. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <main className="shell">
+      <div className="shell-card">
+        <h1>Choose a new password</h1>
+        <p className="lead">Pick something you&apos;ll remember. You&apos;ll stay signed in on this device.</p>
+        <form onSubmit={submit}>
+          <label htmlFor="aq-newpass">New password</label>
+          <input id="aq-newpass" type="password" autoComplete="new-password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
+          <label htmlFor="aq-newpass2">Type it again</label>
+          <input id="aq-newpass2" type="password" autoComplete="new-password" required minLength={6} value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+          <button className="shell-btn" disabled={busy}>{busy ? "Saving…" : "Save new password"}</button>
+        </form>
+        {msg && <div className="shell-msg err" role="alert">{msg}</div>}
+        <div className="shell-row">
+          <button className="shell-link" type="button" onClick={onBack}>Back to sign in</button>
         </div>
       </div>
     </main>

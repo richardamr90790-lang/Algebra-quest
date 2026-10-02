@@ -13,7 +13,7 @@ import {
   type Learner,
 } from "@/lib/learners";
 import { createPusher, mergeState, sameProgress } from "@/game/sync.js";
-import { LearnerPicker, SignInScreen } from "./auth-screens";
+import { LearnerPicker, RecoveryScreen, SignInScreen } from "./auth-screens";
 
 // The game is an imperative DOM app (src/game/app.js). It renders into #app and
 // #confettiCanvas, so it is loaded in the browser after those elements exist.
@@ -23,6 +23,7 @@ type Screen =
   | { name: "loading" }
   | { name: "signin" }
   | { name: "picker" }
+  | { name: "recovery" } // opened from a password-reset email
   | { name: "playing"; learner: Learner | null }; // null = local-only play on this device
 type SyncStatus = "saved" | "saving" | "offline";
 
@@ -37,6 +38,9 @@ export default function AlgebraQuest() {
   const [status, setStatus] = useState<SyncStatus>("saved");
   const pusherRef = useRef<ReturnType<typeof createPusher> | null>(null);
   const activeRef = useRef<{ userId: string; learner: Learner } | null>(null);
+  // Set while someone is choosing a new password, so the sign-in events that come with the reset link
+  // don't whisk them off to the "Who's playing?" screen.
+  const recoveringRef = useRef(false);
 
   // Offline support (installed app / no connection).
   useEffect(() => {
@@ -58,10 +62,17 @@ export default function AlgebraQuest() {
     db.auth.getSession().then(({ data }) => {
       if (!alive) return;
       setSession(data.session);
+      if (recoveringRef.current) return;
       setScreen((s) => (s.name === "loading" ? { name: data.session ? "picker" : "signin" } : s));
     });
-    const { data: sub } = db.auth.onAuthStateChange((_event, next) => {
+    const { data: sub } = db.auth.onAuthStateChange((event, next) => {
       setSession(next);
+      if (event === "PASSWORD_RECOVERY") {
+        recoveringRef.current = true;
+        setScreen({ name: "recovery" });
+        return;
+      }
+      if (recoveringRef.current) return;
       if (!next) {
         setScreen((s) => (s.name === "playing" && s.learner === null ? s : { name: "signin" }));
       } else {
@@ -221,6 +232,22 @@ export default function AlgebraQuest() {
   return (
     <>
       {screen.name === "signin" && db && <SignInScreen db={db} onLocal={playLocal} />}
+      {screen.name === "recovery" && db && (
+        <RecoveryScreen
+          db={db}
+          onDone={() => {
+            recoveringRef.current = false;
+            window.history.replaceState(null, "", window.location.pathname);
+            setScreen({ name: "picker" });
+          }}
+          onBack={async () => {
+            recoveringRef.current = false;
+            window.history.replaceState(null, "", window.location.pathname);
+            await db.auth.signOut();
+            setScreen({ name: "signin" });
+          }}
+        />
+      )}
       {screen.name === "picker" && (
         <LearnerPicker
           learners={learners}

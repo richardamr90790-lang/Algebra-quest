@@ -16,6 +16,17 @@ Accounts and synced progress need a free Supabase project. Without one the app s
 
 **Authentication -> URL Configuration**: set **Site URL** to your deployed address (e.g. `https://your-app.vercel.app`).
 
+## 3b. Let "Forgot password?" links come back to the site
+The reset email contains a link that must be allowed to return to your site. In **Authentication -> URL Configuration**:
+- **Site URL**: your deployed address with no slash at the end, e.g. `https://your-app.vercel.app`
+- **Redirect URLs**: click **Add URL** and add the same address (and `http://localhost:3000` if you run it locally)
+
+Without this the link in the email won't open the "Choose a new password" screen.
+
+Supabase's built-in email sender is limited to a few emails an hour, which is plenty for occasional resets. If you ever hit "email rate limit exceeded", wait a while or connect your own email provider under **Project Settings -> Authentication -> SMTP**.
+
+For a small private group you can also turn off **Allow new users to sign up** (Authentication -> Sign In / Providers) once everyone has an account, so strangers can't create accounts.
+
 ## 4. Connect the app
 Go to **Project Settings -> API** and copy:
 - **Project URL**
@@ -30,3 +41,4 @@ On Vercel: **Project -> Settings -> Environment Variables**, add `NEXT_PUBLIC_SU
 - Progress saves on the device immediately and uploads a couple of seconds later. If offline, the bar shows "Offline - will sync" and retries.
 - Two devices merge instead of overwriting: XP and best streak take the higher value, mastered problems are combined, and a reset made later than another device's last edit wins.
 - "Play without an account" keeps the old device-only mode.
+- "Forgot password?" emails a reset link; opening it shows a "Choose a new password" screen and then signs you in.

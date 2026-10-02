@@ -22,7 +22,8 @@
     "e2e:report": "node e2e/report.e2e.mjs",
     "e2e:a11y": "node e2e/a11y.e2e.mjs",
     "e2e:a11y-accounts": "node e2e/a11y-accounts.e2e.mjs",
-    "e2e:themes": "node e2e/premium-themes.e2e.mjs"
+    "e2e:themes": "node e2e/premium-themes.e2e.mjs",
+    "e2e:forgot": "node e2e/forgot-password.e2e.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
