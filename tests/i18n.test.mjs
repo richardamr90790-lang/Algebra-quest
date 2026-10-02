@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { t, tn, tIn, L, getLang, setLang, onLangChange, detectLang, dictionaries, LANGS } from "../src/game/i18n.js";
+import { t, tIn, L, getLang, setLang, onLangChange, detectLang, dictionaries, LANGS } from "../src/game/i18n.js";
 
 test("language detection", () => {
   assert.equal(detectLang("es"), "es");

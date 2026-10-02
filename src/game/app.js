@@ -13,7 +13,7 @@ import { SHOP_ITEMS, itemById, balance, buy, canUse, isOwned } from "./shop.js";
 import { createSoundPlayer } from "./sound.js";
 import { ACHIEVEMENTS, EMPTY_STATS, newBadges, achievementById } from "./achievements.js";
 import { addActivity, buildReport, describeScore } from "./report.js";
-import { L, tn, getLang, setLang, onLangChange, locale, deviceLang, rememberDeviceLang } from "./i18n.js";
+import { L, getLang, setLang, locale, deviceLang, rememberDeviceLang } from "./i18n.js";
 import { loadContentTable, applyContentLanguage, contentLoaded } from "./localize.js";
 
 function checkAnswerFor(p){ return p.check || p.a; }
@@ -38,6 +38,7 @@ function rerollTopicProblems(topicId){
   if(!Array.isArray(fresh) || !fresh.length) return;
   if(!state.customProblems) state.customProblems = {};
   state.customProblems[topicId] = fresh;
+  state.customLang = getLang();
   state.mastered[topicId] = [];
   if(state.masteredDates) delete state.masteredDates[topicId];
   markTopicReset(topicId);
@@ -70,7 +71,7 @@ let storageKey = LEGACY_STORAGE_KEY;
 let onSaveHook = null;
 function defaultState(){
   return {xp:0, bestStreak:0, mastered:{}, customProblems:{}, theme:"clean", name:"", masteredDates:{}, avatar:"root",
-    updatedAt:0, resetAt:0, topicResets:{}, review:{}, placement:null, placementDismissed:false, daily:null, dailyCount:0, owned:[], frame:"", badges:{}, stats:{...EMPTY_STATS}, activity:[], lang:""};
+    updatedAt:0, resetAt:0, topicResets:{}, review:{}, placement:null, placementDismissed:false, daily:null, dailyCount:0, owned:[], frame:"", badges:{}, stats:{...EMPTY_STATS}, activity:[], lang:"", customLang:""};
   // lang = "en" | "es" chosen for this learner ("" = follow the device / browser language, see i18n.js)
   // review[topicId] = {box, due, last, at} spaced-review schedule (see review.js).
   // activity = recent finished sessions [{at, mode, title, correct, total}], newest first (see report.js).
@@ -484,7 +485,8 @@ function activityText(e){
   if(e.mode==="topic" && e.topicId){ const t = TOPICS.find(x=>x.id===e.topicId); if(t) title = t.title; }
   else if(e.mode==="boss" && e.bossLevel){ const l = BOSS_LEVELS.find(x=>x.id===e.bossLevel); if(l) title = L(l.name,l.es); }
   else if(e.mode!=="topic" && e.mode!=="boss") title = "";   // Daily Review / Daily Challenge / Check-in: the label says it all
-  return !title ? label : `${label}: ${title}`;
+  // Older entries have only a stored title, which may already start with the label.
+  return !title ? label : (title.startsWith(label) || title.startsWith("Boss Battle")) ? title : `${label}: ${title}`;
 }
 function whenText(at){
   const days = Math.round((new Date().setHours(0,0,0,0) - new Date(at).setHours(0,0,0,0)) / 86400000);
@@ -741,13 +743,19 @@ function backHome(){
    The choice is saved with the learner (state.lang) and remembered on the device so the sign-in screens match. */
 function languageReady(lang){ return lang!=="es" || contentLoaded(); }
 function applyLanguageNow(lang){ applyContentLanguage(lang); setLang(lang); refreshVoices(); }
+// Resolves to the language actually in use: if the Spanish text can't be downloaded (offline the first time), stay in English.
 async function ensureLanguage(lang){
-  if(lang==="es") await loadContentTable("es");
+  if(lang==="es"){
+    try{ await loadContentTable("es"); }
+    catch{ lang = "en"; }
+  }
   applyLanguageNow(lang);
+  return lang;
 }
 // Rerolled practice sets were generated in the old language; make fresh ones (same length, so mastery counts stay valid).
 function regenerateCustomProblems(){
   const sets = state.customProblems || {};
+  state.customLang = getLang();
   Object.keys(sets).forEach(id=>{
     const t = TOPICS.find(x=>x.id===Number(id));
     const fresh = t && GENERATORS[t.id] ? GENERATORS[t.id](t) : null;
@@ -759,7 +767,8 @@ function regenerateCustomProblems(){
 }
 async function changeLanguage(next){
   if(next===getLang()) return;
-  await ensureLanguage(next);
+  const got = await ensureLanguage(next);
+  if(got!==next){ announce(L("Couldn't load Spanish. Check your connection and try again.","No se pudo cargar el español. Revisa tu conexión e inténtalo de nuevo.")); return; }
   state.lang = next;
   rememberDeviceLang(next);
   regenerateCustomProblems();
@@ -1141,7 +1150,11 @@ export function loadLearner({key, initial=null, onSave=null} = {}){
   try{ localStorage.setItem(storageKey, JSON.stringify(state)); }catch(e){}
   streak = 0; view = "home"; session = null;
   applyTheme(state.theme);
-  const finish = ()=>{ checkAchievements(true); reseedDisplay(); render(); };
+  const finish = ()=>{
+    // Re-rolled sets saved in the other language (e.g. chosen on another device) are regenerated in this one.
+    if(Object.keys(state.customProblems||{}).length && (state.customLang||"en")!==getLang()){ regenerateCustomProblems(); saveState(); }
+    checkAchievements(true); reseedDisplay(); render();
+  };
   const want = state.lang || deviceLang();
   if(languageReady(want)){ applyLanguageNow(want); finish(); }
   else ensureLanguage(want).then(finish);
