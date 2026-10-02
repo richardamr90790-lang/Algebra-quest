@@ -2,6 +2,8 @@
 
 A 9th grade algebra skill-builder: 34 topics across 8 regions, flashcard quests with worked examples and guided practice, XP, streaks, avatars, six themes, read-aloud, a dictionary, and tiered Boss Battles. Problems are generated fresh, with answers built backwards from clean solutions.
 
+Everything is available in English and in Dominican Spanish (a 🌐 button on the home and sign-in screens; see [Languages](#languages)).
+
 Installable on a phone or desktop (PWA) and works offline. Progress is saved in the browser and can be exported to / imported from a file. With a Supabase project connected (see [docs/supabase-setup.md](docs/supabase-setup.md)), a parent signs in, adds learner profiles, and each learner's progress syncs across devices.
 
 ## Run it
@@ -23,6 +25,8 @@ npm run e2e:adaptive # browser test: warm-ups and perfect-run scheduling (build 
 npm run e2e:placement # browser test: the check-in (build without Supabase keys on :3100)
 npm run e2e:hints  # browser test: hint ladder and mistake feedback (build without Supabase keys on :3100)
 npm run e2e:review # browser test: daily review (build without Supabase keys on :3100)
+npm run e2e:spanish # browser test: Spanish and the language toggle, incl. an English-leak scan of every screen (build without Supabase keys on :3100)
+npm run e2e:spanish-accounts # browser test: language on the sign-in screens and saved per learner (build with fake keys)
 npm run e2e:sync   # browser test: accounts + sync against a mocked Supabase (see header of e2e/sync.e2e.mjs)
 npm run build && npm start
 ```
@@ -50,10 +54,28 @@ npm run build && npm start
 | `src/game/placement.js` | Check-in plan, per-region scoring, suggested start (pure logic) |
 | `src/game/review.js` | Spaced-review schedule (Leitner boxes), pure logic |
 | `src/game/backup.js` | Export / import of saved progress (no DOM) |
+| `src/game/i18n.js` | Language state (`en` / `es`), `L(english, spanish)`, detection, locale for dates |
+| `src/game/localize.js` | Switches `TOPICS` and the dictionary between languages in place (loads the Spanish table on demand) |
+| `src/game/i18n/content-es.js` | GENERATED English → Spanish table for all topic and dictionary text, built from `translations/content.tsv` |
+| `translations/content.tsv` | The Spanish translations of the topic and dictionary text (one `english<TAB>spanish` row per string) |
 | `src/game/app.js` | State, screens and rendering (still the original imperative UI, to be split up) |
 | `public/themes/` | Theme background art: the six free themes (extracted from the original single file) and the three premium ones (`glam`, `tide`, `holo`, each with a small `-thumb` for the shop) |
 | `public/sw.js` | Service worker: pages network-first, static files cache-first |
 | `legacy/` | The original single-file HTML, kept for reference and parity checks |
+
+## Languages
+
+The game and the sign-in screens are in English and Dominican Spanish (informal "tú"; numbers use a decimal point and comma thousands, the same as English, so answers never need converting). A learner's choice is saved with their progress (so it follows them between devices); a device remembers its last choice for the sign-in screens, and a new device starts from the browser language.
+
+How it fits together:
+
+- **Interface text** is written inline with `L("English", "Español")`, so the two versions sit side by side.
+- **Topic and dictionary text** stays English in `src/game/data/`. `translations/content.tsv` maps every English string to Spanish; `npm run build:content` regenerates `src/game/i18n/content-es.js` from it. `localize.js` rewrites `TOPICS` in place from a pristine English copy when the language changes.
+- **Generated practice problems** use `L()` inside the generators, so they come out in the current language. Changing language regenerates any re-rolled practice sets.
+- **Answers**: `o` works like `or`, accents are ignored, and Spanish unit words (`millas`, `horas`, `donde`...) are ignored like their English twins. Typed English answers still work.
+- **Read-aloud** speaks Spanish with the best Spanish voice on the device (Dominican first when it has one).
+
+When you add or change English text, update `translations/content.tsv` (the tests list anything missing), run `npm run build:content`, and run `npm test`. `node scripts/extract-content-strings.mjs` lists every string that needs a translation. The Spanish was written for a Dominican audience but has not been reviewed by a native speaker, so terminology feedback is welcome.
 
 ## Deploying
 

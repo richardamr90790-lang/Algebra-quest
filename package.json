@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "build:content": "node scripts/build-content-es.mjs",
     "test": "node --test \"tests/**/*.test.mjs\"",
     "e2e:local": "node e2e/offline-backup.e2e.mjs",
     "e2e:sync": "node e2e/sync.e2e.mjs",
@@ -23,7 +24,9 @@
     "e2e:a11y": "node e2e/a11y.e2e.mjs",
     "e2e:a11y-accounts": "node e2e/a11y-accounts.e2e.mjs",
     "e2e:themes": "node e2e/premium-themes.e2e.mjs",
-    "e2e:forgot": "node e2e/forgot-password.e2e.mjs"
+    "e2e:forgot": "node e2e/forgot-password.e2e.mjs",
+    "e2e:spanish": "node e2e/spanish.e2e.mjs",
+    "e2e:spanish-accounts": "node e2e/spanish-accounts.e2e.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",

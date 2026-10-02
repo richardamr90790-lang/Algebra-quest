@@ -2032,7 +2032,7 @@ function normalizeMathForSpeech(text){
   t = t.replace(/</g, L(" is less than "," es menor que "));
   t = t.replace(/>/g, L(" is greater than "," es mayor que "));
   // Times/divide/minus variants.
-  t = t.replace(/×/g, L(" times "," por "));
+  t = t.replace(/[×·]/g, L(" times "," por "));
   t = t.replace(/÷/g, L(" divided by "," entre "));
   t = t.replace(/[−–—]/g, L(" minus "," menos "));
   // Equals / arrow.
