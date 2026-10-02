@@ -47,8 +47,9 @@ const answer = async (right) => { await page.click("#skipBtn"); await page.click
 const CORRECT = [659.25, 880], WRONG = [440, 329.63];
 const last = async () => { const p = await plays(); return p[p.length - 1]; };
 
-// ---- right / wrong ----
-await openTopic(19);
+// ---- right / wrong ----  (First Steps is pre-earned so its badge chime does not overlap these checks)
+const EARNED = { badges: { "first-answer": 1 } };
+await openTopic(19, EARNED);
 ok((await page.evaluate(() => localStorage.getItem("algebraQuestSound"))) !== "off", "sound is on by default");
 await clearPlays();
 await page.waitForSelector("#skipBtn");
@@ -61,19 +62,28 @@ ok(JSON.stringify(await last()) === JSON.stringify(WRONG), "a wrong answer plays
 ok((await plays()).length === 1, "exactly one sound per answer");
 
 // ---- level up (95 XP + a right answer = level 2) ----
-await openTopic(19, { xp: 95 });
+await openTopic(19, { ...EARNED, xp: 95 });
 await clearPlays();
 await page.click("#skipBtn"); await page.click("#gotIt"); await page.waitForTimeout(100);
 let l = await last();
 ok(l.length === 4 && l[0] === 523.25 && l[3] === 1046.5, "crossing 100 XP plays the level-up arpeggio instead");
 
 // ---- topic mastered (5 of 6 already done) ----
-await openTopic(19, { xp: 0, mastered: { 19: [0, 1, 2, 3, 4] } });
+await openTopic(19, { ...EARNED, xp: 0, mastered: { 19: [0, 1, 2, 3, 4] } });
 for (let i = 0; i < 5; i++) await answer(true);
 await clearPlays();
 await page.click("#skipBtn"); await page.click("#gotIt"); await page.waitForTimeout(100);
 l = await last();
 ok(l.length === 6 && l[0] === 523.25 && l[5] === 1567.98, "mastering a topic plays the big arpeggio");
+
+// ---- a new badge gets its own chime ----
+await openTopic(19);
+await clearPlays();
+await page.click("#skipBtn"); await page.click("#gotIt");
+await page.waitForSelector(".badge-toast", { timeout: 3000 });
+await page.waitForTimeout(700);
+l = await plays();
+ok(l.length === 2 && JSON.stringify(l[1]) === JSON.stringify([783.99, 1046.5, 1318.5]), "earning a badge plays a three-note chime after the answer sound");
 
 // ---- mute is remembered and respected ----
 await page.goto("http://localhost:3100/"); await page.waitForSelector(".topic-card");

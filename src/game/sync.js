@@ -8,6 +8,7 @@
 
 import { mergeReview } from "./review.js";
 import { mergeOwned } from "./shop.js";
+import { mergeBadges, mergeStats } from "./achievements.js";
 
 const asObj = (v) => (v && typeof v === "object" && !Array.isArray(v) ? v : {});
 const ms = (v) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
@@ -62,6 +63,10 @@ export function mergeState(a, b) {
   // Shop: owned items are a union (only copies not wiped by a later reset count).
   const owned = counting.reduce((acc, s) => mergeOwned(acc, s.owned), []);
 
+  // Badges (union, earliest date kept) and the counters behind them (the larger of each).
+  const badges = counting.reduce((acc, s) => mergeBadges(acc, s.badges), {});
+  const stats = counting.reduce((acc, s) => mergeStats(acc, s.stats), mergeStats());
+
   // Re-rolled practice sets: take the newer side's, falling back to the older's.
   const customProblems = { ...asObj(older.customProblems), ...asObj(newer.customProblems) };
   for (const id of Object.keys(customProblems)) {
@@ -81,6 +86,8 @@ export function mergeState(a, b) {
     daily,
     dailyCount,
     owned,
+    badges,
+    stats,
     review: mergeReview(asObj(a.review), asObj(b.review), { resetAt, topicResets }),
     resetAt,
     topicResets,

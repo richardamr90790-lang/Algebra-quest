@@ -137,3 +137,15 @@ test("shop purchases from two devices are both kept, and a later reset clears th
   assert.deepEqual(mergeState(a, b).owned.sort(), ["gold", "rocket"]);
   assert.deepEqual(mergeState(a, s({ updatedAt: 300, resetAt: 300 })).owned, []);
 });
+
+test("badges and counters merge across devices, and a later reset clears them", () => {
+  const a = s({ updatedAt: 100, badges: { "first-answer": 50 }, stats: { correct: 9, reviews: 1 } });
+  const b = s({ updatedAt: 200, badges: { "master-1": 80, "first-answer": 30 }, stats: { correct: 4, reviews: 3 } });
+  const m = mergeState(a, b);
+  assert.deepEqual(m.badges, { "first-answer": 30, "master-1": 80 });
+  assert.equal(m.stats.correct, 9);
+  assert.equal(m.stats.reviews, 3);
+  const reset = mergeState(a, s({ updatedAt: 300, resetAt: 300 }));
+  assert.deepEqual(reset.badges, {});
+  assert.equal(reset.stats.correct, 0);
+});

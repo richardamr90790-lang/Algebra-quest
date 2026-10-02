@@ -18,7 +18,7 @@ function fakeContext({ state = "running" } = {}) {
 }
 
 test("every sound has well-formed notes", () => {
-  assert.deepEqual(SOUND_NAMES.sort(), ["buy", "correct", "fanfare", "levelup", "mastered", "streak", "wrong"]);
+  assert.deepEqual(SOUND_NAMES.sort(), ["badge", "buy", "correct", "fanfare", "levelup", "mastered", "streak", "wrong"]);
   for (const name of SOUND_NAMES) {
     const plan = planFor(name);
     assert.ok(plan.length >= 2, name);

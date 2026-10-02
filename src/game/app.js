@@ -11,6 +11,7 @@ import { shouldInsertWarmup, nextMissStreak, isPerfectRun } from "./adaptive.js"
 import { dailyProblems, dailyDoneToday, DAILY_XP_PER_CORRECT, DAILY_BONUS_XP } from "./daily.js";
 import { SHOP_ITEMS, itemById, balance, buy, canUse, isOwned } from "./shop.js";
 import { createSoundPlayer } from "./sound.js";
+import { ACHIEVEMENTS, EMPTY_STATS, newBadges, achievementById } from "./achievements.js";
 
 function checkAnswerFor(p){ return p.check || p.a; }
 
@@ -66,8 +67,9 @@ let storageKey = LEGACY_STORAGE_KEY;
 let onSaveHook = null;
 function defaultState(){
   return {xp:0, bestStreak:0, mastered:{}, customProblems:{}, theme:"clean", name:"", masteredDates:{}, avatar:"root",
-    updatedAt:0, resetAt:0, topicResets:{}, review:{}, placement:null, placementDismissed:false, daily:null, dailyCount:0, owned:[], frame:""};
+    updatedAt:0, resetAt:0, topicResets:{}, review:{}, placement:null, placementDismissed:false, daily:null, dailyCount:0, owned:[], frame:"", badges:{}, stats:{...EMPTY_STATS}};
   // review[topicId] = {box, due, last, at} spaced-review schedule (see review.js).
+  // badges = {achievementId: ms earned}; stats = counters behind the badges (see achievements.js).
   // owned = shop item ids; frame = equipped avatar frame id or "" (see shop.js).
   // daily = {day, correct, total} for the last completed Daily Challenge; dailyCount = challenges completed in all.
   // placement = {at, regions:{cat:{correct,total,level}}, start:topicId|null} from the check-in; placementDismissed = card hidden.
@@ -364,8 +366,11 @@ function recordReviewResults(){
     // In a review a topic passes only if all its problems are right; in a topic run the usual 80% applies.
     const ok = session.mode==="review" ? c===n : passed(c,n);
     // A perfect run (no hints, no retries) pushes the next review one step further out.
-    review = recordResult(review, Number(id), ok, new Date(), ok && isPerfectRun(rows) ? 1 : 0);
+    const perfect = ok && isPerfectRun(rows);
+    if(perfect) bumpStat("perfect");
+    review = recordResult(review, Number(id), ok, new Date(), perfect ? 1 : 0);
   });
+  if(session.mode==="review") bumpStat("reviews");
   state.review = review;
   saveState();
 }
@@ -420,6 +425,11 @@ function startDaily(){
   view = "quest";
   render();
 }
+function finishBoss(){
+  bumpStat("bosses");
+  if(session.correctCount===session.problems.length) bumpStat("bossPerfect");
+  saveState();
+}
 function finishDaily(){
   state.daily = {day:session.day, correct:session.correctCount, total:session.problems.length};
   state.dailyCount = (state.dailyCount||0) + 1;
@@ -439,6 +449,60 @@ function dailyCardHTML(){
   return `<div class="daily-card"><div class="review-text"><div class="review-title">⭐ Daily Challenge</div>
     <div class="review-sub">5 mixed questions, the same for everyone today · +${DAILY_BONUS_XP} bonus XP</div></div>
     <button type="button" class="review-go" id="dailyBtn">Play</button></div>`;
+}
+
+// ---- Achievements: counters, unlock detection and the pop-up (see achievements.js) ----
+function bumpStat(key, n=1){
+  state.stats = {...EMPTY_STATS, ...(state.stats||{})};
+  state.stats[key] += n;
+}
+// Records any newly earned badges. `silent` is used when loading a learner, so existing progress is
+// credited quietly instead of firing a pop-up for every old milestone.
+function checkAchievements(silent){
+  const fresh = newBadges(state, TOPICS, t=>getTopicProblems(t).length);
+  if(!fresh.length) return;
+  state.badges = {...(state.badges||{})};
+  fresh.forEach(b=>{ state.badges[b.id] = b.at; });
+  saveState();
+  if(!silent) showBadgeToast(fresh.map(b=>achievementById(b.id)).filter(Boolean));
+}
+function showBadgeToast(list){
+  if(!list.length || typeof document==="undefined") return;
+  const el = document.createElement("div");
+  el.className = "badge-toast";
+  el.setAttribute("role","status");
+  el.innerHTML = list.map(a=>`<div class="bt-row"><span class="bt-icon" aria-hidden="true">${a.icon}</span><span><strong>Badge earned!</strong> ${a.title}</span></div>`).join("");
+  el.addEventListener("click", ()=>el.remove());
+  document.body.appendChild(el);
+  setTimeout(()=>playSound("badge"), 450);
+  setTimeout(()=>el.remove(), 5000);
+}
+function openBadges(){ view = "badges"; render(); }
+function renderBadges(){
+  const have = state.badges || {};
+  const count = ACHIEVEMENTS.filter(a=>have[a.id]).length;
+  const tiles = ACHIEVEMENTS.map(a=>{
+    const when = have[a.id];
+    return `<div class="badge-tile${when ? " earned" : " locked"}">
+      <div class="badge-icon" aria-hidden="true">${when ? a.icon : "🔒"}</div>
+      <div class="badge-title">${a.title}</div>
+      <div class="badge-desc">${a.desc}</div>
+      ${when ? `<div class="badge-date">${new Date(when).toLocaleDateString(undefined,{month:"short", day:"numeric", year:"numeric"})}</div>` : ""}
+    </div>`;
+  }).join("");
+  app.innerHTML = `
+  <div class="view-enter">
+  <div class="topbar">
+    <div class="brand">
+      <div class="mark">${avatarIcon(state.avatar)}</div>
+      <div><h1>Badges</h1><p><span id="badgeCount">${count}</span> of ${ACHIEVEMENTS.length} earned</p></div>
+    </div>
+    ${statsBarHTML()}
+  </div>
+  <div class="badge-grid">${tiles}</div>
+  <div class="btn-row"><button class="btn btn-ghost" id="homeBtn">Back to map</button></div>
+  </div>`;
+  document.getElementById("homeBtn").addEventListener("click", backHome);
 }
 
 // ---- Shop: premium characters and avatar frames, bought with spendable XP (see shop.js) ----
@@ -493,6 +557,7 @@ function renderShop(){
       const item = itemById(id);
       if(item.kind==="avatar") state.avatar = id; else state.frame = id;   // equip what you just bought
       saveState(); applyFrame();
+      checkAchievements();
       shopMsg = `${item.label} is yours and equipped!`;
       playSound("buy");
       burstConfetti();
@@ -797,6 +862,7 @@ function mark(correct){
     state.xp += 2;
   }
   session.xpEarned = (session.xpEarned||0) + (state.xp - xpBefore);
+  if(session.mode!=="placement"){ bumpStat("answers"); if(correct) bumpStat("correct"); }
   if(session.mode!=="placement"){
     // One sound per answer, the most meaningful first: topic mastered > level up > streak of 5 > right/wrong.
     if(correct && topicObj && !wasMastered && isTopicMastered(topicObj)) playSound("mastered");
@@ -818,10 +884,13 @@ function mark(correct){
       session.draftAnswer=""; session.draftBlanks=null; session.hintLevel=0; session.diagnosis=null;
       if(session.problems[session.pos].scaffold) session.hintLevel = 2; // warm-ups open with the rule and first step shown
       render();
+      checkAchievements();
     }else{
       if(session.mode==="topic" || session.mode==="review") recordReviewResults();
       if(session.mode==="placement") finishPlacement();
       if(session.mode==="daily") finishDaily();
+      if(session.mode==="boss") finishBoss();
+      checkAchievements();
       view="summary"; render();
       if(session.correctCount===session.problems.length) burstConfetti();
     }
@@ -918,6 +987,7 @@ export function loadLearner({key, initial=null, onSave=null} = {}){
   try{ localStorage.setItem(storageKey, JSON.stringify(state)); }catch(e){}
   streak = 0; view = "home"; session = null;
   applyTheme(state.theme);
+  checkAchievements(true);
   reseedDisplay();
   render();
 }
@@ -927,6 +997,7 @@ export function applyRemoteState(next){
   state = Object.assign(defaultState(), next);
   try{ localStorage.setItem(storageKey, JSON.stringify(state)); }catch(e){}
   applyTheme(state.theme);
+  checkAchievements(true);
   if(view==="home"){ reseedDisplay(); render(); }
 }
 /** @param {string} key */
@@ -948,6 +1019,7 @@ function render(){
   if(view==="summary") return renderSummary();
   if(view==="dictionary") return renderDictionary();
   if(view==="shop") return renderShop();
+  if(view==="badges") return renderBadges();
 }
 
 function statsBarHTML(){
@@ -1018,6 +1090,7 @@ function renderHome(){
       <input type="text" id="nameInput" class="name-input${state.name ? " has-name" : ""}" placeholder="Add your name" value="${escapeHtml(state.name||"")}" maxlength="24" aria-label="Your name, used to personalize messages">
     </div>
     <button type="button" class="theme-toggle" id="dictionaryBtn" title="Terminology &amp; formula dictionary">📖 Dictionary</button>
+    <button type="button" class="theme-toggle" id="badgesBtn" title="See your badges">🏅 Badges <span class="badge-count">${Object.keys(state.badges||{}).length}/${ACHIEVEMENTS.length}</span></button>
     <button type="button" class="theme-toggle" id="soundBtn" aria-pressed="${!soundMuted()}" title="Turn sound effects on or off">${soundMuted() ? "🔇 Muted" : "🔊 Sound"}</button>
     <button type="button" class="theme-toggle" id="shopBtn" title="Spend XP on new characters and frames">🛍️ Shop</button>
     <button type="button" class="theme-toggle" id="placementBtn" title="Short check-in to find where to start">🧭 ${state.placement ? "Retake check-in" : "Check-in"}</button>
@@ -1162,6 +1235,7 @@ function renderHome(){
     saveState();
   });
 
+  document.getElementById("badgesBtn").addEventListener("click", openBadges);
   document.getElementById("soundBtn").addEventListener("click", ()=>{
     setSoundMuted(!soundMuted());
     render();

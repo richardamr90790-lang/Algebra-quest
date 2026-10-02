@@ -21,6 +21,11 @@ const PLANS = {
   streak: arpeggio([NOTE.G5, NOTE.C6, NOTE.E6], 0.07, 0.3),
   levelup: arpeggio([NOTE.C5, NOTE.E5, NOTE.G5, NOTE.C6], 0.1, 0.45),
   mastered: arpeggio([NOTE.C5, NOTE.E5, NOTE.G5, NOTE.C6, NOTE.E6, NOTE.G6], 0.08, 0.5),
+  badge: [
+    { freq: NOTE.G5, at: 0, dur: 0.1, type: "sine", gain: 1 },
+    { freq: NOTE.C6, at: 0.1, dur: 0.12, type: "sine", gain: 1 },
+    { freq: NOTE.E6, at: 0.2, dur: 0.4, type: "sine", gain: 0.9 },
+  ],
   buy: [
     { freq: NOTE.E6, at: 0, dur: 0.08, type: "square", gain: 0.5 },
     { freq: NOTE.G6, at: 0.07, dur: 0.3, type: "square", gain: 0.5 },
