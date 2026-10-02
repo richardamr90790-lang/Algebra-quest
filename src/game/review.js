@@ -26,10 +26,11 @@ export function daysBetween(fromDay, toDay) {
 }
 
 // Record the result of practicing a topic. Returns the new review map (does not mutate).
-export function recordResult(review, topicId, passed, now = new Date()) {
+// `skip` (0 or 1) jumps an extra box on a pass, used when the learner clearly knows the topic.
+export function recordResult(review, topicId, passed, now = new Date(), skip = 0) {
   const today = localDay(now);
   const prev = review && review[topicId];
-  const box = passed ? Math.min((prev ? prev.box : -1) + 1, INTERVAL_DAYS.length - 1) : 0;
+  const box = passed ? Math.min((prev ? prev.box : -1) + 1 + skip, INTERVAL_DAYS.length - 1) : 0;
   return {
     ...(review || {}),
     [topicId]: { box, due: addDays(today, INTERVAL_DAYS[box]), last: today, at: now.getTime() },

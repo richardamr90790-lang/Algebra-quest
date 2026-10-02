@@ -11,6 +11,7 @@ npm install
 npm run dev      # http://localhost:3000
 npm test         # engine, backup and sync unit tests
 npm run e2e:local  # browser test: offline, backup (build without Supabase keys on :3100)
+npm run e2e:adaptive # browser test: warm-ups and perfect-run scheduling (build without Supabase keys on :3100)
 npm run e2e:placement # browser test: the check-in (build without Supabase keys on :3100)
 npm run e2e:hints  # browser test: hint ladder and mistake feedback (build without Supabase keys on :3100)
 npm run e2e:review # browser test: daily review (build without Supabase keys on :3100)
@@ -32,6 +33,7 @@ npm run build && npm start
 | `supabase/migrations/` | Database schema + row-level security |
 | `e2e/` | Playwright tests against a mocked Supabase |
 | `src/game/engine/mistakes.js` | Spots common slips in a wrong answer (sign, flipped fraction, partial solutions...) |
+| `src/game/adaptive.js` | Warm-up trigger and perfect-run rules (pure logic) |
 | `src/game/placement.js` | Check-in plan, per-region scoring, suggested start (pure logic) |
 | `src/game/review.js` | Spaced-review schedule (Leitner boxes), pure logic |
 | `src/game/backup.js` | Export / import of saved progress (no DOM) |
@@ -52,7 +54,7 @@ Merge to `main`; the host (Vercel) redeploys. Installed copies pick up the new v
 
 0. Foundation: Next.js project, split modules, PWA, backup
 1. Accounts and synced progress (Supabase), learner profiles (this)
-2. Learning engine: spaced review (done), hints and mistake-aware feedback (done), placement check-in (done), adaptive difficulty, unlimited question variations
+2. Learning engine: spaced review (done), hints and mistake-aware feedback (done), placement check-in (done), gentle adaptive difficulty (done), unlimited question variations
 3. Parent/teacher dashboard and reports
 4. Engagement: daily challenge, streak freezes, avatar shop, sound
 5. Accessibility, mobile polish, analytics

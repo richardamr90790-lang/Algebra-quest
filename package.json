@@ -13,7 +13,8 @@
     "e2e:sync": "node e2e/sync.e2e.mjs",
     "e2e:review": "node e2e/review.e2e.mjs",
     "e2e:hints": "node e2e/hints.e2e.mjs",
-    "e2e:placement": "node e2e/placement.e2e.mjs"
+    "e2e:placement": "node e2e/placement.e2e.mjs",
+    "e2e:adaptive": "node e2e/adaptive.e2e.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",

@@ -7,6 +7,7 @@ import { diagnoseMistake } from "./engine/mistakes.js";
 import { serializeBackup, parseBackup, backupFileName } from "./backup.js";
 import { recordResult, dueTopics, nextDueDay, passed, localDay, daysBetween } from "./review.js";
 import { buildPlan, scoreRegions, recommendStart, REGION_ORDER } from "./placement.js";
+import { shouldInsertWarmup, nextMissStreak, isPerfectRun } from "./adaptive.js";
 
 function checkAnswerFor(p){ return p.check || p.a; }
 
@@ -318,20 +319,41 @@ function startReview(){
 }
 // When a topic session or review finishes, schedule each topic it covered.
 function recordReviewResults(){
-  const tally = {}; // topicId -> [correct, total]
+  const tally = {}; // topicId -> [{correct, hinted, attempts}] for real (non-warm-up) practice problems
   session.problems.forEach((p,i)=>{
-    if(p.kind!=="practice" || session.results[i]===undefined) return;
-    const row = tally[p.topicId] || (tally[p.topicId]=[0,0]);
-    row[1]++; if(session.results[i]==="good") row[0]++;
+    if(p.kind!=="practice" || p.scaffold || session.results[i]===undefined) return;
+    const m = (session.meta && session.meta[i]) || {};
+    (tally[p.topicId] || (tally[p.topicId]=[])).push({
+      correct: session.results[i]==="good",
+      hinted: !!m.hinted,
+      // Revealing the answer instead of typing one never counts as a clean run.
+      attempts: m.typed ? (m.attempts||1) : 99,
+    });
   });
   let review = state.review || {};
-  Object.entries(tally).forEach(([id,[c,n]])=>{
-    // In a review a topic passes only if both problems are right; in a topic run the usual 80% applies.
+  Object.entries(tally).forEach(([id,rows])=>{
+    const c = rows.filter(r=>r.correct).length, n = rows.length;
+    // In a review a topic passes only if all its problems are right; in a topic run the usual 80% applies.
     const ok = session.mode==="review" ? c===n : passed(c,n);
-    review = recordResult(review, Number(id), ok);
+    // A perfect run (no hints, no retries) pushes the next review one step further out.
+    review = recordResult(review, Number(id), ok, new Date(), ok && isPerfectRun(rows) ? 1 : 0);
   });
   state.review = review;
   saveState();
+}
+// ---- Warm-up: a fresh problem from the same topic, with the rule and first step already shown ----
+function insertWarmup(){
+  const t = TOPICS.find(x=>x.id===session.topicId);
+  if(!t) return false;
+  const have = new Set(session.problems.map(x=>x.q));
+  const items = ((GENERATORS[t.id] ? GENERATORS[t.id](t) : null) || []).filter(x=>!have.has(x.q));
+  if(!items.length) return false;
+  const n = (session.warmups||0) + 1;
+  const pick = items[Math.floor(Math.random()*items.length)];
+  session.problems.splice(session.pos+1, 0, {...pick, topicId:t.id, cat:t.cat, howTo:t.howTo, idx:"w"+n, kind:"practice", scaffold:true});
+  session.warmups = n;
+  session.missStreak = 0;
+  return true;
 }
 function reviewCardHTML(){
   const due = dueTopics(state.review);
@@ -615,18 +637,26 @@ function submitBlanks(){
 function mark(correct){
   const p = session.problems[session.pos];
   session.results[session.pos] = correct ? "good" : "bad";
+  (session.meta || (session.meta = []))[session.pos] = {hinted:(session.hintLevel||0)>0, attempts:session.attempts||0, typed:!!session.autoResult};
+  const xpBefore = state.xp;
   if(session.mode==="placement"){
     if(correct) session.correctCount++;
   }else if(correct){
     session.correctCount++;
     streak++;
     if(streak>state.bestStreak) state.bestStreak = streak;
-    state.xp += (session.mode==="boss" || session.mode==="review") ? (session.xpPerCorrect||14) : (p.kind==="guided" ? 6 : 10);
-    if(session.mode==="topic" && p.kind==="practice") setMastered(session.topicId, p.idx, session.practiceCount);
+    state.xp += (session.mode==="boss" || session.mode==="review") ? (session.xpPerCorrect||14) : (p.scaffold ? 4 : p.kind==="guided" ? 6 : 10);
+    if(session.mode==="topic" && p.kind==="practice" && !p.scaffold) setMastered(session.topicId, p.idx, session.practiceCount);
     if(streak>0 && streak%5===0) burstConfetti();
   }else{
     streak = 0;
     state.xp += 2;
+  }
+  session.xpEarned = (session.xpEarned||0) + (state.xp - xpBefore);
+  // Two misses in a row on real practice: slip a warm-up in next.
+  if(session.mode==="topic" && p.kind==="practice"){
+    session.missStreak = nextMissStreak(session.missStreak||0, {correct, warmup:!!p.scaffold});
+    if(shouldInsertWarmup({missStreak:session.missStreak, warmupsUsed:session.warmups||0, problemsLeft:session.problems.length-1-session.pos})) insertWarmup();
   }
   saveState();
   setTimeout(()=>{
@@ -634,7 +664,9 @@ function mark(correct){
       session.pos++; session.revealed=false; session.autoResult=null;
       session.attempts=0; session.retryFlash=false;
       session.blankAnswers=null; session.blankCorrect=null;
-      session.draftAnswer=""; session.draftBlanks=null; session.hintLevel=0; session.diagnosis=null; render();
+      session.draftAnswer=""; session.draftBlanks=null; session.hintLevel=0; session.diagnosis=null;
+      if(session.problems[session.pos].scaffold) session.hintLevel = 2; // warm-ups open with the rule and first step shown
+      render();
     }else{
       if(session.mode==="topic" || session.mode==="review") recordReviewResults();
       if(session.mode==="placement") finishPlacement();
@@ -1191,8 +1223,11 @@ function renderQuest(){
     catLabel = TOPICS.find(t=>t.id===p.topicId).title;
   }else if(p.kind==="guided"){
     catLabel = `Guided Practice ${session.pos+1} of ${session.guidedCount}`;
+  }else if(p.scaffold){
+    catLabel = "Warm-up · doesn't count against you";
   }else{
-    catLabel = `Problem ${session.pos-session.guidedCount+1} of ${session.practiceCount}`;
+    const n = session.problems.slice(session.guidedCount, session.pos+1).filter(x=>!x.scaffold).length;
+    catLabel = `Problem ${n} of ${session.practiceCount}`;
   }
 
   let dots = "";
@@ -1216,7 +1251,9 @@ function renderQuest(){
   </div>
   <div class="dots">${dots}</div>`;
 
-  if(session.mode==="topic"){
+  if(p.scaffold){
+    html += `<div class="why-strip warmup-note"><span class="star">🌱</span><span>Let's try a warm-up first. The rule and first step are shown to help.</span></div>`;
+  }else if(session.mode==="topic"){
     html += `<div class="why-strip"><span class="star">★</span><span>${session.why}</span></div>`;
   }
 
@@ -1845,7 +1882,7 @@ function renderSummary(){
     <div class="big epic">${msg}</div>
     <div class="stats-row">
       <div><div class="n">${correct}/${total}</div><div class="l">Correct</div></div>
-      <div><div class="n">+${(session.mode==="boss"||session.mode==="review") ? correct*(session.xpPerCorrect||14)+(total-correct)*2 : correct*10+(total-correct)*2}</div><div class="l">XP earned</div></div>
+      <div><div class="n">+${session.xpEarned!==undefined ? session.xpEarned : correct*10+(total-correct)*2}</div><div class="l">XP earned</div></div>
       <div><div class="n">${state.bestStreak}</div><div class="l">Best streak</div></div>
     </div>
     <div class="btn-row">
