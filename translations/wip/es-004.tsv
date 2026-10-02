@@ -1,0 +1,220 @@
+541	<span class='step-label'>Paso 2:</span> Distribuye la <span class='ex-purple'>x</span>: x³ + x² + 2x
+542	<span class='step-label'>Paso 3:</span> Distribuye el <span class='ex-blue'>1</span>: x² + x + 2
+543	<span class='step-label'>Paso 4:</span> Combina los términos semejantes: <span class='ex-red'>x³ + 2x² + 3x + 2</span>
+544	<div class='ex-notice'>Fíjate: cada término del binomio (morado, azul) se distribuye en cada término del trinomio; no se salta ninguno.</div>
+545	Distribuye la x: x³ + x² + x
+546	Distribuye el 2: 2x² + 2x + 2
+547	Combina los términos semejantes: x³ + 3x² + 3x + 2
+548	Distribuye la x: {{}}
+549	Distribuye el 2: {{}}
+550	Suma los términos semejantes: términos x²: 1x² + 2x² = {{}}, términos x: 1x + 2x = {{}}
+551	Distribuye la x: x³ + 2x² + 4x
+552	Distribuye el −3: −3x² − 6x − 12
+553	Combina los términos semejantes: x³ − x² − 2x − 12
+554	Distribuye el −3: {{}}
+555	Suma los términos semejantes: términos x²: 2x² − 3x² = {{}}, términos x: 4x − 6x = {{}}
+556	Distribuye el 2x: 2x³ − 2x² + 4x
+557	Distribuye el 3: 3x² − 3x + 6
+558	Combina los términos semejantes: 2x³ + x² + x + 6
+559	Distribuye el 2x: {{}}
+560	Distribuye el 3: {{}}
+561	Suma los términos semejantes: términos x²: −2x² + 3x² = {{}}, términos x: 4x − 3x = {{}}
+562	(x + 1)(x² − x + 1)  (¡fíjate en lo que se cancela!)
+563	Distribuye la x: x³ − x² + x
+564	Distribuye el 1: x² − x + 1
+565	Combina los términos semejantes; casi todos los del medio se cancelan: x³ + 1
+566	Distribuye el 1: {{}}
+567	Suma los términos semejantes: términos x²: −x² + x² = {{}}, términos x: x − x = {{}}
+568	Combina los términos semejantes (casi todo se cancela): {{}}
+569	Distribuye la x: x³ + 2x² + 3x
+570	Distribuye el 1: x² + 2x + 3
+571	Combina los términos semejantes: x³ + 3x² + 5x + 3
+572	Distribuye la x: x³ − 2x² + 5x
+573	Distribuye el 3: 3x² − 6x + 15
+574	Combina los términos semejantes: x³ + x² − x + 15
+575	Distribuye la x: x³ + 4x² + x
+576	Distribuye el −2: −2x² − 8x − 2
+577	Combina los términos semejantes: x³ + 2x² − 7x − 2
+578	Distribuye el 2x: 2x³ + 2x² + 6x
+579	Distribuye el 1: x² + x + 3
+580	Combina los términos semejantes: 2x³ + 3x² + 7x + 3
+581	Distribuye el −1: −x² − x − 1
+582	Combina los términos semejantes; todo se cancela excepto: x³ − 1
+583	Distribuye la x: x³ − 3x² + 2x
+584	Distribuye el 4: 4x² − 12x + 8
+585	Combina los términos semejantes: x³ + x² − 10x + 8
+586	Factorización por factor común (MCD)
+587	Siempre es lo primero que debes revisar: saltártelo es el error más común al factorizar.
+588	Busca el número más grande que divide exactamente todos los coeficientes, y la potencia más pequeña de la variable que aparece en TODOS los términos; juntos forman el MCD. Divide cada término entre el MCD y escribe el MCD adelante, con lo que sobra dentro del paréntesis.
+589	Coeficiente
+590	El número que multiplica a una variable y va delante de ella.
+591	En 6x², el coeficiente es 6.
+592	MCD (máximo común divisor)
+593	La expresión más grande que divide exactamente a todos los términos.
+594	El MCD de 6x² y 9x es 3x.
+595	Sacar el MCD como factor común
+596	<div class='ex-legend'><span class='ex-purple'>MORADO</span> = el MCD que sacas, <span class='ex-blue'>AZUL</span> = lo que queda, <span class='ex-red'>ROJO</span> = la respuesta</div>
+597	<span class='step-label'>Paso 1:</span> Empieza con: 6x² + 9x
+598	<span class='step-label'>Paso 2:</span> El MCD de 6 y 9 es 3; los dos términos tienen una x → MCD = <span class='ex-purple'>3x</span>
+599	<span class='step-label'>Paso 3:</span> Divide cada término entre 3x: <span class='ex-blue'>2x y 3</span>
+600	<span class='step-label'>Paso 4:</span> Respuesta: <span class='ex-red'>3x(2x + 3)</span>
+601	<span class='step-label'>Paso 1:</span> Empieza con: 8x³ + 12x²
+602	<span class='step-label'>Paso 2:</span> El MCD de 8 y 12 es 4; la potencia más pequeña de x en ambos es x² → MCD = <span class='ex-purple'>4x²</span>
+603	<span class='step-label'>Paso 3:</span> Divide cada término entre 4x²: <span class='ex-blue'>2x y 3</span>
+604	<span class='step-label'>Paso 4:</span> Respuesta: <span class='ex-red'>4x²(2x + 3)</span>
+605	<div class='ex-notice'>Fíjate: el MCD morado va adelante, y lo que sobra (azul) va dentro del paréntesis.</div>
+606	El MCD de 6 y 15 es 3; los dos términos tienen al menos una x → MCD = 3x
+607	Divide cada término entre 3x: 2x y 5
+608	Respuesta: 3x(2x + 5)
+609	MCD de los coeficientes 6 y 15: {{}}
+610	MCD completo (con la variable): {{}}
+611	Divide cada término entre 3x: {{}} y {{}}
+612	El MCD de 20 y 30 es 10; los dos términos tienen al menos una x → MCD = 10x
+613	Divide cada término entre 10x: 2x y −3
+614	Respuesta: 10x(2x − 3)
+615	MCD de los coeficientes 20 y 30: {{}}
+616	Divide cada término entre 10x: {{}} y {{}}
+617	El MCD de 18 y 24 es 6; la potencia más pequeña de x en ambos es x² → MCD = 6x²
+618	Divide cada término entre 6x²: 3x y 4
+619	Respuesta: 6x²(3x + 4)
+620	MCD de los coeficientes 18 y 24: {{}}
+621	MCD completo (la potencia más pequeña de x en ambos es x²): {{}}
+622	Divide cada término entre 6x²: {{}} y {{}}
+623	El MCD de 4 y 8 es 4; los dos términos tienen al menos una x → MCD = 4x
+624	Divide cada término entre 4x: x y 2
+625	Respuesta: 4x(x + 2)
+626	El MCD de 10 y 15 es 5; los dos términos tienen al menos una x → MCD = 5x
+627	Divide cada término entre 5x: 2x y −3
+628	Respuesta: 5x(2x − 3)
+629	El MCD de 12 y 18 es 6; la potencia más pequeña de x en ambos términos es x² → MCD = 6x²
+630	Divide cada término entre 6x²: 2x y 3
+631	Respuesta: 6x²(2x + 3)
+632	El MCD de 9 y 27 es 9; los dos términos tienen al menos una x → MCD = 9x
+633	Divide cada término entre 9x: x y 3
+634	Respuesta: 9x(x + 3)
+635	El MCD de 14 y 21 es 7; los dos términos tienen al menos una x → MCD = 7x
+636	Divide cada término entre 7x: 2x y −3
+637	Respuesta: 7x(2x − 3)
+638	El MCD de 16 y 24 es 8; la potencia más pequeña de x en ambos términos es x² → MCD = 8x²
+639	Divide cada término entre 8x²: 2x y −3
+640	Respuesta: 8x²(2x − 3)
+641	Diferencia de cuadrados
+642	Un patrón que vale la pena memorizar: aparece constantemente al factorizar y al simplificar expresiones racionales.
+643	Un cuadrado perfecto MENOS otro cuadrado perfecto siempre se factoriza como (a − b)(a + b). Saca la raíz cuadrada del primer término para obtener a, y la raíz cuadrada del segundo término para obtener b, y luego ponlas directamente en ese patrón.
+644	Una expresión de la forma a² − b², que siempre se factoriza como (a − b)(a + b).
+645	Un caso básico
+646	<div class='ex-legend'><span class='ex-purple'>MORADO</span> = la raíz cuadrada del primer término, <span class='ex-blue'>AZUL</span> = la raíz cuadrada del segundo término, <span class='ex-red'>ROJO</span> = la respuesta</div>
+647	<span class='step-label'>Paso 1:</span> Empieza con: x² − 16 = x² − 4²
+648	<span class='step-label'>Paso 3:</span> Ponlo en el patrón a² − b² = (a − b)(a + b): <span class='ex-red'>(x − 4)(x + 4)</span>
+649	<span class='step-label'>Paso 1:</span> Empieza con: x² − 36 = x² − 6²
+650	<span class='step-label'>Paso 3:</span> Ponlo en el patrón: <span class='ex-red'>(x − 6)(x + 6)</span>
+651	<div class='ex-notice'>Fíjate: las raíces cuadradas morada y azul siempre terminan como un par con signo MENOS y un par con signo MÁS: los mismos dos números, con signos opuestos.</div>
+652	La raíz cuadrada de x² es x; la raíz cuadrada de 4 es 2.
+653	Patrón: a² − b² = (a − b)(a + b)
+654	Respuesta: (x − 2)(x + 2)
+655	Raíz cuadrada de x²: {{}}
+656	Raíz cuadrada de 4: {{}}
+657	La raíz cuadrada de 16x² es 4x; la raíz cuadrada de 25 es 5.
+658	Respuesta: (4x − 5)(4x + 5)
+659	Raíz cuadrada de 16x²: {{}}
+660	Raíz cuadrada de 25: {{}}
+661	La raíz cuadrada de x² es x; la raíz cuadrada de 100 es 10.
+662	Respuesta: (x − 10)(x + 10)
+663	Raíz cuadrada de 100: {{}}
+664	La raíz cuadrada de x² es x; la raíz cuadrada de 25 es 5.
+665	Respuesta: (x − 5)(x + 5)
+666	La raíz cuadrada de x² es x; la raíz cuadrada de 49 es 7.
+667	Respuesta: (x − 7)(x + 7)
+668	La raíz cuadrada de 4x² es 2x; la raíz cuadrada de 9 es 3.
+669	Respuesta: (2x − 3)(2x + 3)
+670	La raíz cuadrada de 9x² es 3x; la raíz cuadrada de 16 es 4.
+671	Respuesta: (3x − 4)(3x + 4)
+672	La raíz cuadrada de x² es x; la raíz cuadrada de 1 es 1.
+673	Respuesta: (x − 1)(x + 1)
+674	La raíz cuadrada de 25x² es 5x; la raíz cuadrada de 36 es 6.
+675	Respuesta: (5x − 6)(5x + 6)
+676	Factorización (con coeficiente principal)
+677	La mayoría de los trinomios reales que vas a factorizar tienen un número delante de x²; este es el método que más vas a usar.
+678	El "método ac": multiplica a × c. Busca dos números que se multipliquen para dar ese producto Y sumen b. Separa el término del medio usando esos dos números, agrupa los cuatro términos en dos pares y factoriza cada par; debes obtener el mismo binomio en ambos. Saca ese binomio común como factor. No importa cuál de los dos números escribas primero al separar el término del medio: al agrupar llegas a la misma respuesta factorizada de cualquier forma.
+679	Coeficiente principal
+680	El coeficiente del término de mayor potencia de un polinomio.
+681	En 2x² + 5x + 2, el coeficiente principal es 2.
+682	El método ac
+683	<div class='ex-legend'><span class='ex-purple'>MORADO</span> = los dos números que encuentras, <span class='ex-blue'>AZUL</span> = los pares agrupados, <span class='ex-red'>ROJO</span> = la respuesta</div>
+684	<span class='step-label'>Paso 1:</span> Empieza con: 2x² + 7x + 3 → a×c = 2×3 = 6
+685	<span class='step-label'>Paso 2:</span> Dos números que multiplicados dan 6 y sumados dan 7: <span class='ex-purple'>1 y 6</span>
+686	<span class='step-label'>Paso 3:</span> Separa el término del medio y agrupa: <span class='ex-blue'>x(2x+1) + 3(2x+1)</span>
+687	<span class='step-label'>Paso 4:</span> Saca el binomio común como factor: <span class='ex-red'>(2x+1)(x+3)</span>
+688	<span class='step-label'>Paso 1:</span> Empieza con: 3x² + 7x + 2 → a×c = 3×2 = 6
+689	<span class='step-label'>Paso 3:</span> Separa el término del medio y agrupa: <span class='ex-blue'>x(3x+1) + 2(3x+1)</span>
+690	<span class='step-label'>Paso 4:</span> Saca el binomio común como factor: <span class='ex-red'>(3x+1)(x+2)</span>
+691	<div class='ex-notice'>Fíjate: el par morado siempre tiene que multiplicarse para dar a×c Y sumar b; revisa las dos cosas antes de separar.</div>
+692	a × c = 2 × 4 = 8. Dos números que multiplicados dan 8 y sumados dan 9: 1 y 8
+693	Separa el término del medio: 2x² + 1x + 8x + 4
+694	Agrupa y factoriza cada par: x(2x + 1) + 4(2x + 1)
+695	Saca el (2x + 1) común: (2x + 1)(x + 4)
+696	Paso 2 (el orden no importa)
+697	Dos números que multiplicados dan 8 y sumados dan 9: {{}} y {{}}
+698	Paso 3 (usa tus dos números, en cualquier orden)
+699	Separa el término del medio: 2x² + {{}}x + {{}}x + 4
+700	a × c = 3 × 4 = 12. Dos números que multiplicados dan 12 y sumados dan 8: 2 y 6
+701	Separa el término del medio: 3x² + 2x + 6x + 4
+702	Agrupa y factoriza cada par: x(3x + 2) + 2(3x + 2)
+703	Saca el (3x + 2) común: (3x + 2)(x + 2)
+704	Dos números que multiplicados dan 12 y sumados dan 8: {{}} y {{}}
+705	Separa el término del medio: 3x² + {{}}x + {{}}x + 4
+706	a × c = 2 × −6 = −12. Dos números que multiplicados dan −12 y sumados dan 1: 4 y −3
+707	Separa el término del medio: 2x² + 4x − 3x − 6
+708	Agrupa y factoriza cada par: 2x(x + 2) − 3(x + 2)
+709	Saca el (x + 2) común: (2x − 3)(x + 2)
+710	Dos números que multiplicados dan −12 y sumados dan 1: {{}} y {{}}
+711	Separa el término del medio: 2x² + {{}}x + {{}}x − 6
+712	a × c = 2 × 2 = 4. Dos números que multiplicados dan 4 y sumados dan 5: 1 y 4
+713	Separa el término del medio: 2x² + 1x + 4x + 2
+714	Agrupa y factoriza cada par: x(2x + 1) + 2(2x + 1)
+715	Saca el (2x + 1) común: (2x + 1)(x + 2)
+716	a × c = 3 × 3 = 9. Dos números que multiplicados dan 9 y sumados dan 10: 1 y 9
+717	Separa el término del medio: 3x² + 1x + 9x + 3
+718	Agrupa y factoriza cada par: x(3x + 1) + 3(3x + 1)
+719	Saca el (3x + 1) común: (3x + 1)(x + 3)
+720	a × c = 2 × 6 = 12. Dos números que multiplicados dan 12 y sumados dan 7: 3 y 4
+721	Separa el término del medio: 2x² + 3x + 4x + 6
+722	Agrupa y factoriza cada par: x(2x + 3) + 2(2x + 3)
+723	Saca el (2x + 3) común: (2x + 3)(x + 2)
+724	a × c = 3 × 2 = 6. Dos números que multiplicados dan 6 y sumados dan 5: 2 y 3
+725	Separa el término del medio: 3x² + 2x + 3x + 2
+726	Agrupa y factoriza cada par: x(3x + 2) + 1(3x + 2)
+727	Saca el (3x + 2) común: (3x + 2)(x + 1)
+728	a × c = 2 × −3 = −6. Dos números que multiplicados dan −6 y sumados dan −5: 1 y −6
+729	Separa el término del medio: 2x² + 1x − 6x − 3
+730	Agrupa y factoriza cada par: x(2x + 1) − 3(2x + 1)
+731	Saca el (2x + 1) común: (2x + 1)(x − 3)
+732	a × c = 4 × −3 = −12. Dos números que multiplicados dan −12 y sumados dan 4: 6 y −2
+733	Separa el término del medio: 4x² + 6x − 2x − 3
+734	Agrupa y factoriza cada par: 2x(2x + 3) − 1(2x + 3)
+735	Saca el (2x + 3) común: (2x + 3)(2x − 1)
+736	Completar el cuadrado
+737	También se usa para hallar el vértice de una parábola, y así es como se deduce la propia fórmula cuadrática.
+738	Pasa la constante al otro lado. Toma la MITAD del coeficiente de x, elévala al cuadrado y suma ese número a AMBOS lados. El lado izquierdo ahora es un cuadrado perfecto: escríbelo como (x + esa mitad)². Saca la raíz cuadrada de ambos lados (no olvides el ±) y luego resuelve los dos casos.
+739	Trinomio cuadrado perfecto
+740	Un trinomio que se factoriza como (x + n)² para algún número n.
+741	<div class='ex-legend'><span class='ex-purple'>MORADO</span> = la mitad del coeficiente de x, al cuadrado, <span class='ex-blue'>AZUL</span> = lo que se suma a ambos lados, <span class='ex-red'>ROJO</span> = la respuesta</div>
+742	<span class='step-label'>Paso 1:</span> Pasa la constante: x² + 6x + 5 = 0 → x² + 6x = −5
+743	<span class='step-label'>Paso 2:</span> La mitad de 6 es 3, y al cuadrado es <span class='ex-purple'>9</span>; súmalo a <span class='ex-blue'>AMBOS lados</span>: (x + 3)² = 4
+744	<span class='step-label'>Paso 3:</span> Saca la raíz cuadrada de ambos lados (no olvides el ±): x + 3 = ±2
+745	<span class='step-label'>Paso 4:</span> Respuesta: <span class='ex-red'>x = −1 o x = −5</span>
+746	<span class='step-label'>Paso 1:</span> Pasa la constante: x² − 2x − 3 = 0 → x² − 2x = 3
+747	<span class='step-label'>Paso 2:</span> La mitad de −2 es −1, y al cuadrado es <span class='ex-purple'>1</span>; súmalo a <span class='ex-blue'>AMBOS lados</span>: (x − 1)² = 4
+748	<span class='step-label'>Paso 3:</span> Saca la raíz cuadrada de ambos lados: x − 1 = ±2
+749	<span class='step-label'>Paso 4:</span> Respuesta: <span class='ex-red'>x = 3 o x = −1</span>
+750	<div class='ex-notice'>Fíjate: el número morado (la mitad del coeficiente de x, al cuadrado) siempre se suma a ambos lados para formar un cuadrado perfecto.</div>
+751	Cuando el número no es un cuadrado perfecto
+752	<span class='step-label'>Paso 1:</span> Pasa la constante: x² + 4x − 1 = 0 → x² + 4x = 1
+753	<span class='step-label'>Paso 2:</span> La mitad de 4 es 2, y al cuadrado es 4; súmalo a AMBOS lados: (x + 2)² = 5
+754	<span class='step-label'>Paso 3:</span> Saca la raíz cuadrada de ambos lados: x + 2 = ±√5; 5 no es un cuadrado perfecto, así que el radical se queda.
+755	<span class='step-label'>Paso 4:</span> Respuesta: <span class='ex-red'>x = −2 ± √5</span>
+756	<div class='ex-notice'>Fíjate: no todo cuadrado completado da una respuesta entera; cuando el número que queda debajo de la raíz no es un cuadrado perfecto, déjalo como radical en vez de forzar un decimal.</div>
+757	x = −2  o  x = −4
+758	Pasa la constante: x² + 6x = −8
+759	La mitad de 6 es 3, y al cuadrado es 9; súmalo a ambos lados: (x + 3)² = 1
+760	Saca la raíz cuadrada de ambos lados: x + 3 = ±1
