@@ -4,6 +4,7 @@ import { BOSS_LEVELS, bossHellGenerators } from "./engine/boss-tiers.js";
 import { GENERATORS, choice } from "./engine/generators.js";
 import { checkEquivalence, matchAnyOrder } from "./engine/equivalence.js";
 import { serializeBackup, parseBackup, backupFileName } from "./backup.js";
+import { recordResult, dueTopics, nextDueDay, passed, localDay, daysBetween } from "./review.js";
 
 function checkAnswerFor(p){ return p.check || p.a; }
 
@@ -28,13 +29,13 @@ function rerollTopicProblems(topicId){
   if(!state.customProblems) state.customProblems = {};
   state.customProblems[topicId] = fresh;
   state.mastered[topicId] = [];
-  markTopicReset(topicId);
   if(state.masteredDates) delete state.masteredDates[topicId];
   markTopicReset(topicId);
   saveState();
   render();
 }
 function markTopicReset(topicId){
+  if(state.review) delete state.review[topicId];
   if(!state.topicResets) state.topicResets = {};
   state.topicResets[topicId] = Date.now();
 }
@@ -48,7 +49,8 @@ let storageKey = LEGACY_STORAGE_KEY;
 let onSaveHook = null;
 function defaultState(){
   return {xp:0, bestStreak:0, mastered:{}, customProblems:{}, theme:"clean", name:"", masteredDates:{}, avatar:"root",
-    updatedAt:0, resetAt:0, topicResets:{}};
+    updatedAt:0, resetAt:0, topicResets:{}, review:{}};
+  // review[topicId] = {box, due, last, at} spaced-review schedule (see review.js).
   // updatedAt = ms of the last save; resetAt / topicResets[topicId] = ms of a full / per-topic reset. Used by sync
   // so a reset on one device isn't undone by merging with another device's older progress.
   // mastered[topicId] = [idx,...]; customProblems[topicId] = [{q,a,...}] when rerolled; theme = selected visual theme id;
@@ -284,6 +286,69 @@ function startBoss(levelId){
   view = "quest";
   render();
 }
+// ---- Spaced review ----
+const REVIEW_TOPICS_PER_SESSION = 5;
+const REVIEW_PROBLEMS_PER_TOPIC = 2;
+function startReview(){
+  const due = dueTopics(state.review, new Date(), REVIEW_TOPICS_PER_SESSION);
+  if(!due.length) return;
+  const pool = [];
+  due.forEach(topicId=>{
+    const t = TOPICS.find(x=>x.id===topicId);
+    if(!t) return;
+    const items = (GENERATORS[topicId] ? GENERATORS[topicId]() : null) || getTopicProblems(t);
+    const picks = items.slice();
+    for(let i=picks.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [picks[i],picks[j]]=[picks[j],picks[i]]; }
+    picks.slice(0, REVIEW_PROBLEMS_PER_TOPIC).forEach(p=> pool.push({...p, topicId, cat:t.cat}));
+  });
+  if(!pool.length) return;
+  for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
+  session = {
+    mode:"review", xpPerCorrect:12, reviewTopics:due,
+    title:"Daily Review", cat:null, learnPhase:null, guidedCount:0, practiceCount:pool.length,
+    problems: pool.map((p,idx)=>({...p, idx, kind:"practice"})), pos:0, revealed:false, autoResult:null, attempts:0, retryFlash:false,
+    results:[], correctCount:0, why:null,
+    peekOpen:false, peekPos:0, termsOpen:false, draftAnswer:"", draftBlanks:null,
+  };
+  view = "quest";
+  render();
+}
+// When a topic session or review finishes, schedule each topic it covered.
+function recordReviewResults(){
+  const tally = {}; // topicId -> [correct, total]
+  session.problems.forEach((p,i)=>{
+    if(p.kind!=="practice" || session.results[i]===undefined) return;
+    const row = tally[p.topicId] || (tally[p.topicId]=[0,0]);
+    row[1]++; if(session.results[i]==="good") row[0]++;
+  });
+  let review = state.review || {};
+  Object.entries(tally).forEach(([id,[c,n]])=>{
+    // In a review a topic passes only if both problems are right; in a topic run the usual 80% applies.
+    const ok = session.mode==="review" ? c===n : passed(c,n);
+    review = recordResult(review, Number(id), ok);
+  });
+  state.review = review;
+  saveState();
+}
+function reviewCardHTML(){
+  const due = dueTopics(state.review);
+  if(due.length){
+    const names = due.slice(0,3).map(id=>{ const t=TOPICS.find(x=>x.id===id); return t ? t.title : ""; }).filter(Boolean).join(", ");
+    const more = due.length>3 ? ` +${due.length-3} more` : "";
+    return `<div class="review-card due">
+      <div class="review-text"><div class="review-title">🔁 Daily Review <span class="review-count">${due.length} due</span></div>
+      <div class="review-sub">${names}${more}</div></div>
+      <button type="button" class="review-go" id="reviewBtn">Start review</button></div>`;
+  }
+  const next = nextDueDay(state.review);
+  if(next){
+    const n = daysBetween(localDay(), next);
+    return `<div class="review-card done"><div class="review-text"><div class="review-title">✅ Review is all caught up</div>
+      <div class="review-sub">Next review ${n===1 ? "tomorrow" : "in "+n+" days"}</div></div></div>`;
+  }
+  return "";
+}
+
 function backHome(){
   view = "home"; session = null; render();
 }
@@ -463,7 +528,7 @@ function mark(correct){
     session.correctCount++;
     streak++;
     if(streak>state.bestStreak) state.bestStreak = streak;
-    state.xp += session.mode==="boss" ? (session.xpPerCorrect||14) : (p.kind==="guided" ? 6 : 10);
+    state.xp += (session.mode==="boss" || session.mode==="review") ? (session.xpPerCorrect||14) : (p.kind==="guided" ? 6 : 10);
     if(session.mode==="topic" && p.kind==="practice") setMastered(session.topicId, p.idx, session.practiceCount);
     if(streak>0 && streak%5===0) burstConfetti();
   }else{
@@ -478,6 +543,7 @@ function mark(correct){
       session.blankAnswers=null; session.blankCorrect=null;
       session.draftAnswer=""; session.draftBlanks=null; render();
     }else{
+      if(session.mode==="topic" || session.mode==="review") recordReviewResults();
       view="summary"; render();
       if(session.correctCount===session.problems.length) burstConfetti();
     }
@@ -490,6 +556,7 @@ function resetProgress(){
 function resetTopicProgress(topicId){
   state.mastered[topicId] = [];
   if(state.masteredDates) delete state.masteredDates[topicId];
+  markTopicReset(topicId);
   saveState();
   render();
 }
@@ -677,7 +744,8 @@ function renderHome(){
       Theme: ${curTheme.name}
     </button>
     ${themePanelOpen ? themePanelHTML() : ""}
-  </div>`;
+  </div>
+  ${reviewCardHTML()}`;
 
   // Track which topics just became fully mastered this render, so only those
   // get the one-time badge glow (not every topic that was already mastered before).
@@ -809,6 +877,8 @@ function renderHome(){
     saveState();
   });
 
+  const reviewBtn = document.getElementById("reviewBtn");
+  if(reviewBtn) reviewBtn.addEventListener("click", startReview);
   document.getElementById("dictionaryBtn").addEventListener("click", ()=>{
     view = "dictionary";
     render();
@@ -1011,10 +1081,11 @@ function renderDictionary(){
 
 function renderQuest(){
   const p = session.problems[session.pos];
-  const catColor = session.mode==="boss" ? CAT[p.cat].color : CAT[session.cat].color;
-  const catIcon = session.mode==="boss" ? CAT[p.cat].icon : CAT[session.cat].icon;
+  const crossTopic = session.mode==="boss" || session.mode==="review";
+  const catColor = crossTopic ? CAT[p.cat].color : CAT[session.cat].color;
+  const catIcon = crossTopic ? CAT[p.cat].icon : CAT[session.cat].icon;
   let catLabel;
-  if(session.mode==="boss"){
+  if(crossTopic){
     catLabel = TOPICS.find(t=>t.id===p.topicId).title;
   }else if(p.kind==="guided"){
     catLabel = `Guided Practice ${session.pos+1} of ${session.guidedCount}`;
@@ -1630,7 +1701,7 @@ function renderSummary(){
     <div class="big epic">${msg}</div>
     <div class="stats-row">
       <div><div class="n">${correct}/${total}</div><div class="l">Correct</div></div>
-      <div><div class="n">+${session.mode==="boss" ? correct*(session.xpPerCorrect||14)+(total-correct)*2 : correct*10+(total-correct)*2}</div><div class="l">XP earned</div></div>
+      <div><div class="n">+${(session.mode==="boss"||session.mode==="review") ? correct*(session.xpPerCorrect||14)+(total-correct)*2 : correct*10+(total-correct)*2}</div><div class="l">XP earned</div></div>
       <div><div class="n">${state.bestStreak}</div><div class="l">Best streak</div></div>
     </div>
     <div class="btn-row">

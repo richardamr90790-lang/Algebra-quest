@@ -11,6 +11,7 @@ npm install
 npm run dev      # http://localhost:3000
 npm test         # engine, backup and sync unit tests
 npm run e2e:local  # browser test: offline, backup (build without Supabase keys on :3100)
+npm run e2e:review # browser test: daily review (build without Supabase keys on :3100)
 npm run e2e:sync   # browser test: accounts + sync against a mocked Supabase (see header of e2e/sync.e2e.mjs)
 npm run build && npm start
 ```
@@ -28,6 +29,7 @@ npm run build && npm start
 | `src/app/auth-screens.tsx` | Sign-in and "Who's playing?" screens |
 | `supabase/migrations/` | Database schema + row-level security |
 | `e2e/` | Playwright tests against a mocked Supabase |
+| `src/game/review.js` | Spaced-review schedule (Leitner boxes), pure logic |
 | `src/game/backup.js` | Export / import of saved progress (no DOM) |
 | `src/game/app.js` | State, screens and rendering (still the original imperative UI, to be split up) |
 | `public/themes/` | Theme background art (extracted from the original single file) |
@@ -46,7 +48,7 @@ Merge to `main`; the host (Vercel) redeploys. Installed copies pick up the new v
 
 0. Foundation: Next.js project, split modules, PWA, backup
 1. Accounts and synced progress (Supabase), learner profiles (this)
-2. Learning engine: typed answers, hints, spaced review, adaptive difficulty, placement quiz
+2. Learning engine: spaced review (done), hints and worked solutions, adaptive difficulty, placement quiz, unlimited question variations
 3. Parent/teacher dashboard and reports
 4. Engagement: daily challenge, streak freezes, avatar shop, sound
 5. Accessibility, mobile polish, analytics

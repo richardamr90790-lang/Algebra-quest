@@ -95,3 +95,14 @@ test("flush uploads immediately", async () => {
   await p.flush();
   assert.deepEqual(sent, [{ xp: 9 }]);
 });
+
+test("review schedules merge per topic and follow resets", () => {
+  const r = (box, at) => ({ box, due: "2026-10-10", last: "2026-10-09", at });
+  const a = s({ updatedAt: 100, review: { 1: r(2, 100), 2: r(0, 90) } });
+  const b = s({ updatedAt: 200, review: { 1: r(0, 200), 3: r(1, 150) } });
+  const m = mergeState(a, b);
+  assert.equal(m.review[1].box, 0, "newer entry wins");
+  assert.ok(m.review[2] && m.review[3], "topics from both devices are kept");
+  const reset = mergeState(a, s({ updatedAt: 300, resetAt: 300, review: {} }));
+  assert.deepEqual(reset.review, {}, "a later full reset clears review");
+});

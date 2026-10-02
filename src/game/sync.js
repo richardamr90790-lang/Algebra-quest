@@ -6,6 +6,8 @@
 // reset (topicResets[id]) discards the *other* copy's progress only if that copy
 // was last edited before the reset happened.
 
+import { mergeReview } from "./review.js";
+
 const asObj = (v) => (v && typeof v === "object" && !Array.isArray(v) ? v : {});
 const ms = (v) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
 
@@ -62,6 +64,7 @@ export function mergeState(a, b) {
     mastered,
     masteredDates,
     customProblems,
+    review: mergeReview(asObj(a.review), asObj(b.review), { resetAt, topicResets }),
     resetAt,
     topicResets,
     updatedAt: Math.max(ms(a.updatedAt), ms(b.updatedAt)),

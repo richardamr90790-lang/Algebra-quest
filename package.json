@@ -10,7 +10,8 @@
     "lint": "eslint",
     "test": "node --test \"tests/**/*.test.mjs\"",
     "e2e:local": "node e2e/offline-backup.e2e.mjs",
-    "e2e:sync": "node e2e/sync.e2e.mjs"
+    "e2e:sync": "node e2e/sync.e2e.mjs",
+    "e2e:review": "node e2e/review.e2e.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
