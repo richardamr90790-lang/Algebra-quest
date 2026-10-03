@@ -773,6 +773,8 @@ function openTour(){
   draw();
 }
 function maybeShowTour(){ if(view==="home" && shouldAutoShowTour(state)) openTour(); }
+// The standalone single-file build supplies its own inlined flag images (window.AQ_FLAGS).
+function flagSrc(code){ return (window.AQ_FLAGS && window.AQ_FLAGS[code]) || `/flags/${code}.svg`; }
 function backHome(){
   view = "home"; session = null; render();
 }
@@ -1329,7 +1331,7 @@ function renderHome(){
     <button type="button" class="theme-toggle" id="shopBtn" title="${L("Spend XP on new characters and frames","Gasta XP en personajes y marcos nuevos")}">🛍️ ${L("Shop","Tienda")}</button>
     <button type="button" class="theme-toggle" id="placementBtn" title="${L("Short check-in to find where to start","Chequeo corto para encontrar por dónde empezar")}">🧭 ${state.placement ? L("Retake check-in","Repetir chequeo") : L("Check-in","Chequeo")}</button>
     <button type="button" class="theme-toggle" id="tourBtn" title="${L("A quick tour of everything in Algebra Quest","Un recorrido rápido por todo Algebra Quest")}">❓ ${L("Tour","Guía")}</button>
-    <button type="button" class="theme-toggle" id="langBtn" lang="${getLang()==="es" ? "en" : "es"}" title="${L("Cambiar a español","Switch to English")}"><img class="flag-img" src="/flags/${getLang()==="es" ? "us" : "do"}.svg" alt="" width="22" height="15"> ${getLang()==="es" ? "English" : "Español"}</button>
+    <button type="button" class="theme-toggle" id="langBtn" lang="${getLang()==="es" ? "en" : "es"}" title="${L("Cambiar a español","Switch to English")}"><img class="flag-img" src="${flagSrc(getLang()==="es" ? "us" : "do")}" alt="" width="22" height="15"> ${getLang()==="es" ? "English" : "Español"}</button>
     <button type="button" class="theme-toggle" id="themeToggleBtn" aria-haspopup="listbox" aria-expanded="${themePanelOpen}" title="${L("Change visual theme","Cambia el tema visual")}">
       <span class="swatch-dot" style="--sw-a:${curTheme.a};--sw-b:${curTheme.b};--sw-c:${curTheme.c}" aria-hidden="true"></span>
       ${L("Theme","Tema")}: ${L(curTheme.name,curTheme.es)}

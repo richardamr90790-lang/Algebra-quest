@@ -78,6 +78,10 @@ How it fits together:
 
 When you add or change English text, update `translations/content.tsv` (the tests list anything missing), run `npm run build:content`, and run `npm test`. `node scripts/extract-content-strings.mjs` lists every string that needs a translation. The Spanish was written for a Dominican audience but has not been reviewed by a native speaker, so terminology feedback is welcome.
 
+## Single-file download
+
+`npm run build:standalone` (after `npx next build`) writes `dist/algebra-quest.html`: the whole game, both languages, fonts and backgrounds in one file that works offline by double-clicking it. There are no accounts or syncing in it; progress is saved in that browser only. A copy is kept at `public/download/algebra-quest.html` (served at `/download/algebra-quest.html`); regenerate and copy it after changing the game.
+
 ## Deploying
 
 Import the repo into Vercel (framework: Next.js) and set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` as **Config** variables for Production. Vercel builds every push to `main`; other branches get preview deployments. Make `main` the repo's default branch.
