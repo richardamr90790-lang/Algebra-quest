@@ -94,10 +94,34 @@ function loadState(){
     return Object.assign(defaultState(), parsed);
   }catch(e){ return defaultState(); }
 }
+// Writes the learner's progress to this browser; if the browser refuses (private window, blocked or full storage),
+// a warning shows so nobody plays for an hour before finding out nothing was kept.
+function writeLocal(){
+  try{ localStorage.setItem(storageKey, JSON.stringify(state)); setStorageFailing(false); }
+  catch(e){ setStorageFailing(true); }
+}
 function saveState(){
   state.updatedAt = Date.now();
-  try{ localStorage.setItem(storageKey, JSON.stringify(state)); }catch(e){}
+  writeLocal();
   if(onSaveHook) onSaveHook(state);
+}
+let storageFailing = false;
+function setStorageFailing(v){
+  if(v===storageFailing) return;
+  storageFailing = v;
+  renderSaveWarning();
+}
+function renderSaveWarning(){
+  if(typeof document==="undefined") return;
+  let el = document.getElementById("saveWarning");
+  if(!storageFailing){ if(el) el.remove(); return; }
+  if(!el){
+    el = document.createElement("div");
+    el.id = "saveWarning"; el.className = "save-warning"; el.setAttribute("role","alert");
+    document.body.prepend(el);
+  }
+  el.innerHTML = L("⚠️ Your progress isn't being saved on this device. This browser is blocking storage — try a normal (not private) window, or allow site data for this page.",
+                   "⚠️ Tu progreso no se está guardando en este dispositivo. El navegador está bloqueando el almacenamiento — prueba en una ventana normal (no privada) o permite los datos del sitio para esta página.");
 }
 let state = loadState();
 let streak = 0;
@@ -811,7 +835,7 @@ function backHome(){
 /* ---- language (English / Dominican Spanish) ----
    The choice is saved with the learner (state.lang) and remembered on the device so the sign-in screens match. */
 function languageReady(lang){ return lang!=="es" || contentLoaded(); }
-function applyLanguageNow(lang){ applyContentLanguage(lang); setLang(lang); refreshVoices(); }
+function applyLanguageNow(lang){ applyContentLanguage(lang); setLang(lang); refreshVoices(); renderSaveWarning(); }
 // Resolves to the language actually in use: if the Spanish text can't be downloaded (offline the first time), stay in English.
 async function ensureLanguage(lang){
   if(lang==="es"){
@@ -1216,7 +1240,7 @@ export function loadLearner({key, initial=null, onSave=null} = {}){
   storageKey = key || LEGACY_STORAGE_KEY;
   onSaveHook = onSave || null;
   state = initial ? Object.assign(defaultState(), initial) : loadState();
-  try{ localStorage.setItem(storageKey, JSON.stringify(state)); }catch(e){}
+  writeLocal();
   streak = 0; view = "home"; session = null;
   applyTheme(state.theme);
   const finish = ()=>{
@@ -1233,7 +1257,7 @@ export function loadLearner({key, initial=null, onSave=null} = {}){
 /** @param {object} next */
 export function applyRemoteState(next){
   state = Object.assign(defaultState(), next);
-  try{ localStorage.setItem(storageKey, JSON.stringify(state)); }catch(e){}
+  writeLocal();
   applyTheme(state.theme);
   checkAchievements(true);
   const want = state.lang || getLang();

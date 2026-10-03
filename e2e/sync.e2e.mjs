@@ -98,6 +98,9 @@ await B.click("#themeToggleBtn"); await B.click(".theme-swatch:nth-child(5)");
 await B.waitForFunction(() => document.querySelector(".accountbar .sync")?.textContent?.includes("Offline"), null, { timeout: 9000 });
 ok(true, "failed upload is shown as 'Offline · will sync'");
 ok((await B.evaluate(() => JSON.parse(localStorage.getItem("aq:user-1:L1")).theme)) === "sunset", "progress still saved locally while offline");
+ok(!(await B.isVisible(".save-warning")), "no big warning for a brief hiccup");
+await B.waitForSelector(".save-warning", { timeout: 25000 });
+ok((await B.textContent(".save-warning")).includes("Can't reach your account"), "a lasting failure to reach the account shows a clear warning");
 
 // switch player / sign out / local play
 await B.click("text=Switch player");
