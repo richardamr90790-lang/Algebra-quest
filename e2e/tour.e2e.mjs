@@ -10,13 +10,26 @@ await page.goto("http://localhost:3100/"); await page.evaluate(() => localStorag
 await page.waitForSelector(".tour-card");
 ok((await page.textContent(".tour-card h2")).includes("Welcome"), "a brand-new learner sees the tour on first load");
 ok((await page.evaluate(() => document.activeElement.id)) === "tourNext", "focus starts on the Next button");
+ok(!(await page.isVisible(".tour-spot")), "the welcome step is centred, with nothing highlighted");
+// each later step highlights the real element it talks about, and keeps its card on screen
+const targets = [".topic-card", ".xpbar-wrap", "#badgesBtn", ".daily-card", "#placementBtn", "#bossBtn", "#shopBtn", "#reportBtn", "#langBtn", "#tourBtn"];
+for (const sel of targets) {
+  await page.click("#tourNext");
+  await page.waitForTimeout(450); // let the highlight finish sliding
+  const r = await page.evaluate((sel) => {
+    const el = document.querySelector(sel).getBoundingClientRect(), sp = document.querySelector(".tour-spot").getBoundingClientRect(), c = document.querySelector(".tour-card").getBoundingClientRect();
+    return { around: sp.left <= el.left + 1 && sp.right >= el.right - 1 && sp.top <= el.top + 1 && sp.bottom >= el.bottom - 1, noOverlap: c.bottom <= sp.top + 1 || c.top >= sp.bottom - 1, onScreen: c.left >= 0 && c.right <= innerWidth && c.top >= 0 && c.bottom <= innerHeight };
+  }, sel);
+  ok(r.around && r.noOverlap && r.onScreen, `step highlights ${sel} (spot around it: ${r.around}, card clear of it: ${r.noOverlap}, card on screen: ${r.onScreen})`);
+}
+for (let k = 0; k < targets.length; k++) await page.click("#tourPrev");
 let n = 1;
 while (await page.$("#tourNext")) {
   const label = await page.textContent("#tourNext");
   if (label.includes("Let's go")) { await page.click("#tourNext"); break; }
   await page.click("#tourNext"); n++;
 }
-ok(n === 9, `the tour has 9 steps (${n})`);
+ok(n === 11, `the tour has 11 steps (${n})`);
 await page.waitForSelector(".tour-card", { state: "detached" });
 ok((await state()).tourDone === true, "finishing marks the tour as seen");
 await page.reload(); await page.waitForSelector(".topic-card");
