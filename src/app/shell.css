@@ -37,3 +37,5 @@
   background-color:#e3eefb;background-image:url("/themes/login.webp");
   background-position:center center;background-size:cover;background-repeat:no-repeat;background-attachment:fixed;
 }
+/* Centre the card in the window (the account bar and game screens are unaffected). */
+main.shell{min-height:100dvh;display:flex;flex-direction:column;justify-content:center;box-sizing:border-box}
