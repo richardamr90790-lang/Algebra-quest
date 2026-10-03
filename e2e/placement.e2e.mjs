@@ -12,7 +12,7 @@ const state = () => page.evaluate(() => JSON.parse(localStorage.getItem("algebra
 async function fresh() {
   await page.goto("http://localhost:3100/");
   await page.waitForSelector(".topic-card");
-  await page.evaluate(() => localStorage.clear());
+  await page.evaluate(() => { localStorage.clear(); localStorage.setItem("algebraQuestState_v1", JSON.stringify({ tourDone: true })); });
   await page.reload(); await page.waitForSelector(".topic-card");
 }
 // pattern[i] = whether to mark question i right. Uses the self-mark buttons after revealing.

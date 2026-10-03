@@ -85,6 +85,7 @@ export function mergeState(a, b) {
     mastered,
     masteredDates,
     customProblems,
+    tourDone: !!(a.tourDone || b.tourDone), // once seen anywhere, seen everywhere
     lang: newer.lang || older.lang || "", // the newest choice wins, but "never chosen" doesn't wipe a real one
     placement,
     placementDismissed,

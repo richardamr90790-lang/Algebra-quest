@@ -7,7 +7,7 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PAT
 const page = await browser.newPage({ viewport: { width: 420, height: 900 } });
 const errs = []; page.on("pageerror", (e) => errs.push(String(e)));
 const KEY = "algebraQuestState_v1";
-const base = { xp: 0, bestStreak: 0, mastered: {}, customProblems: {}, theme: "clean", name: "", masteredDates: {}, avatar: "root", updatedAt: 1, resetAt: 0, topicResets: {} };
+const base = { xp: 0, bestStreak: 0, mastered: {}, customProblems: {}, theme: "clean", name: "", masteredDates: {}, avatar: "root", updatedAt: 1, resetAt: 0, topicResets: {}, tourDone: true };
 const stored = () => page.evaluate((k) => JSON.parse(localStorage.getItem(k)), KEY);
 const seed = (extra) => page.evaluate(([k, s]) => localStorage.setItem(k, JSON.stringify(s)), [KEY, { ...base, ...extra }]);
 

@@ -25,6 +25,7 @@ npm run e2e:adaptive # browser test: warm-ups and perfect-run scheduling (build 
 npm run e2e:placement # browser test: the check-in (build without Supabase keys on :3100)
 npm run e2e:hints  # browser test: hint ladder and mistake feedback (build without Supabase keys on :3100)
 npm run e2e:review # browser test: daily review (build without Supabase keys on :3100)
+npm run e2e:tour    # browser test: the welcome tour (build without Supabase keys on :3100)
 npm run e2e:spanish # browser test: Spanish and the language toggle, incl. an English-leak scan of every screen (build without Supabase keys on :3100)
 npm run e2e:spanish-accounts # browser test: language on the sign-in screens and saved per learner (build with fake keys)
 npm run e2e:sync   # browser test: accounts + sync against a mocked Supabase (see header of e2e/sync.e2e.mjs)

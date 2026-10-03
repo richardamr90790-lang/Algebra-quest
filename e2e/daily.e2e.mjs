@@ -26,7 +26,7 @@ async function questions() {
 
 await page.clock.setFixedTime(new Date(`${DAY1}T10:00:00`));
 await load();
-await page.evaluate(() => { localStorage.clear(); localStorage.setItem("algebraQuestState_v1", JSON.stringify({ placementDismissed: true })); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem("algebraQuestState_v1", JSON.stringify({ placementDismissed: true, tourDone: true })); });
 await page.reload(); await page.waitForSelector(".topic-card");
 
 ok((await text(".daily-card")).includes("Daily Challenge") && !!(await page.$("#dailyBtn")), "home offers the Daily Challenge");

@@ -29,9 +29,12 @@ const leaks = async (page, where) => {
 let page = await newPage("es-DO");
 await page.goto("http://localhost:3100/");
 await page.waitForSelector(".topic-card");
+await page.waitForSelector(".tour-card");
+ok((await page.textContent(".tour-card h2")).includes("Bienvenido"), "the welcome tour opens in Spanish on a Spanish device");
 ok((await page.getAttribute("html", "lang")) === "es", "html lang is es on a Spanish device");
 ok((await page.textContent(".topic-card .ttitle")).includes("Reglas de los exponentes"), "topic titles are Spanish");
 ok((await page.textContent("#dictionaryBtn")).includes("Diccionario"), "buttons are Spanish");
+await page.keyboard.press("Escape"); // a first-time learner sees the welcome tour; close it
 await leaks(page, "home");
 
 // ---- toggling back to English, persistence, and the learner's own saved choice ----
@@ -49,7 +52,7 @@ await page.context().close();
 page = await newPage("en-US");
 await page.goto("http://localhost:3100/");
 await page.waitForSelector(".topic-card");
-await page.evaluate(() => { localStorage.clear(); localStorage.setItem("algebraQuestState_v1", JSON.stringify({ placementDismissed: true })); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem("algebraQuestState_v1", JSON.stringify({ placementDismissed: true, tourDone: true })); });
 await page.reload(); await page.waitForSelector(".topic-card");
 ok((await page.getAttribute("html", "lang")) === "en", "English device starts in English");
 await page.click("#langBtn");

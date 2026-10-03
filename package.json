@@ -25,6 +25,7 @@
     "e2e:a11y-accounts": "node e2e/a11y-accounts.e2e.mjs",
     "e2e:themes": "node e2e/premium-themes.e2e.mjs",
     "e2e:forgot": "node e2e/forgot-password.e2e.mjs",
+    "e2e:tour": "node e2e/tour.e2e.mjs",
     "e2e:spanish": "node e2e/spanish.e2e.mjs",
     "e2e:spanish-accounts": "node e2e/spanish-accounts.e2e.mjs"
   },

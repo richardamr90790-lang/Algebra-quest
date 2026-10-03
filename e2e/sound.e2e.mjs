@@ -36,7 +36,7 @@ const KEY = "algebraQuestState_v1";
 async function openTopic(topicId, extraState = {}) {
   await page.goto("http://localhost:3100/");
   await page.waitForSelector(".topic-card");
-  await page.evaluate(([k, s]) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify(s)); }, [KEY, { placementDismissed: true, ...extraState }]);
+  await page.evaluate(([k, s]) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify(s)); }, [KEY, { placementDismissed: true, tourDone: true, ...extraState }]);
   await page.reload(); await page.waitForSelector(".topic-card");
   await page.click(`.topic-card[data-topic="${topicId}"]`);
   await page.waitForTimeout(300);
@@ -105,7 +105,7 @@ ok((await text("#soundBtn")).includes("Sound") && JSON.stringify(await last()) =
 
 // ---- check-in is quiet; the shop and daily challenge have their own sounds ----
 await page.goto("http://localhost:3100/"); await page.waitForSelector(".topic-card");
-await page.evaluate(([k]) => localStorage.setItem(k, JSON.stringify({ placementDismissed: true })), [KEY]);
+await page.evaluate(([k]) => localStorage.setItem(k, JSON.stringify({ placementDismissed: true, tourDone: true })), [KEY]);
 await page.reload(); await page.waitForSelector(".topic-card");
 await page.click("#placementBtn"); await page.waitForSelector("#skipBtn");
 await clearPlays();
@@ -113,7 +113,7 @@ await answer(true); await answer(false);
 ok((await plays()).length === 0, "the check-in makes no answer sounds");
 
 await page.goto("http://localhost:3100/"); await page.waitForSelector(".topic-card");
-await page.evaluate(([k]) => localStorage.setItem(k, JSON.stringify({ placementDismissed: true, xp: 400 })), [KEY]);
+await page.evaluate(([k]) => localStorage.setItem(k, JSON.stringify({ placementDismissed: true, tourDone: true, xp: 400 })), [KEY]);
 await page.reload(); await page.waitForSelector(".topic-card");
 await page.click("#shopBtn"); await page.waitForSelector(".shop-grid");
 await clearPlays();
@@ -122,7 +122,7 @@ l = await last();
 ok(l && l[0] === 1318.5, "buying something plays the coin sound");
 
 await page.goto("http://localhost:3100/"); await page.waitForSelector(".topic-card");
-await page.evaluate(([k]) => localStorage.setItem(k, JSON.stringify({ placementDismissed: true })), [KEY]);
+await page.evaluate(([k]) => localStorage.setItem(k, JSON.stringify({ placementDismissed: true, tourDone: true })), [KEY]);
 await page.reload(); await page.waitForSelector(".topic-card");
 await page.click("#dailyBtn"); await page.waitForSelector("#skipBtn");
 for (let i = 0; i < 5; i++) await answer(true);

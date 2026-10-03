@@ -1202,3 +1202,14 @@ html[data-frame="galaxy"] .brand .mark,.frame-galaxy{box-shadow:0 0 0 3px #7c5cf
 :root[data-theme="holo"]{ --on-accent:#ffffff; --on-accent-2:#ffffff; --on-good:#ffffff; --accent-text:#5b3df5; --accent-2-text:#ba2e79; --good-text:#117649; --bad-text:#c0294f; --on-cat:#ffffff; --cat-deepen:11%; }
 
 .shop-icon-theme{min-height:0;width:100%;justify-content:center}
+
+/* ---- welcome tour ---- */
+.tour-overlay{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:16px;background:rgba(10,15,30,.55);backdrop-filter:blur(2px)}
+.tour-card{max-width:420px;width:100%;background:var(--surface);color:var(--fg);border:1px solid var(--border);border-radius:22px;padding:24px 22px 20px;box-shadow:var(--shadow);text-align:center}
+.tour-icon{font-size:48px;line-height:1}
+.tour-card h2{margin:10px 0 8px;font-size:24px}
+.tour-card p{margin:0 0 14px;line-height:1.5;font-size:16px;color:var(--fg)}
+.tour-dots{display:flex;justify-content:center;gap:6px;margin-bottom:14px}
+.tour-dots span{width:8px;height:8px;border-radius:50%;background:var(--border)}
+.tour-dots span.current{background:var(--accent);width:22px;border-radius:6px}
+.tour-card .btn-row{justify-content:center}
