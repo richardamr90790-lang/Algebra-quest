@@ -736,6 +736,8 @@ function placementChip(cat){
   return `<span class="placement-chip lvl-${row.level}" title="${L(`Check-in: ${row.correct} of ${row.total} right`,`Chequeo: ${row.correct} de ${row.total} correctas`)}">${lv.icon} ${L(lv.label,lv.es)}</span>`;
 }
 
+// The standalone single-file build supplies its own inlined flag images (window.AQ_FLAGS).
+function flagSrc(code){ return (window.AQ_FLAGS && window.AQ_FLAGS[code]) || `/flags/${code}.svg`; }
 function backHome(){
   view = "home"; session = null; render();
 }
@@ -1290,7 +1292,7 @@ function renderHome(){
     <button type="button" class="theme-toggle" id="soundBtn" aria-pressed="${!soundMuted()}" title="${L("Turn sound effects on or off","Activa o desactiva los efectos de sonido")}">${soundMuted() ? L("🔇 Muted","🔇 Silenciado") : L("🔊 Sound","🔊 Sonido")}</button>
     <button type="button" class="theme-toggle" id="shopBtn" title="${L("Spend XP on new characters and frames","Gasta XP en personajes y marcos nuevos")}">🛍️ ${L("Shop","Tienda")}</button>
     <button type="button" class="theme-toggle" id="placementBtn" title="${L("Short check-in to find where to start","Chequeo corto para encontrar por dónde empezar")}">🧭 ${state.placement ? L("Retake check-in","Repetir chequeo") : L("Check-in","Chequeo")}</button>
-    <button type="button" class="theme-toggle" id="langBtn" lang="${getLang()==="es" ? "en" : "es"}" title="${L("Cambiar a español","Switch to English")}"><img class="flag-img" src="/flags/${getLang()==="es" ? "us" : "do"}.svg" alt="" width="22" height="15"> ${getLang()==="es" ? "English" : "Español"}</button>
+    <button type="button" class="theme-toggle" id="langBtn" lang="${getLang()==="es" ? "en" : "es"}" title="${L("Cambiar a español","Switch to English")}"><img class="flag-img" src="${flagSrc(getLang()==="es" ? "us" : "do")}" alt="" width="22" height="15"> ${getLang()==="es" ? "English" : "Español"}</button>
     <button type="button" class="theme-toggle" id="themeToggleBtn" aria-haspopup="listbox" aria-expanded="${themePanelOpen}" title="${L("Change visual theme","Cambia el tema visual")}">
       <span class="swatch-dot" style="--sw-a:${curTheme.a};--sw-b:${curTheme.b};--sw-c:${curTheme.c}" aria-hidden="true"></span>
       ${L("Theme","Tema")}: ${L(curTheme.name,curTheme.es)}
