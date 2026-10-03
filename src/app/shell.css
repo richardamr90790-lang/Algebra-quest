@@ -31,3 +31,9 @@
   font:800 12px var(--font-body);color:var(--fg-muted)}
 .accountbar .who{margin-right:auto;color:var(--fg)}
 .accountbar .sync.ok{color:var(--good)} .accountbar .sync.bad{color:var(--bad)}
+
+/* Sign-in and "Who's playing?" screens: their own backdrop (the game screens keep their theme's). */
+:root[data-theme] body:has(main.shell){
+  background-color:#e3eefb;background-image:url("/themes/login.webp");
+  background-position:center center;background-size:cover;background-repeat:no-repeat;background-attachment:fixed;
+}
