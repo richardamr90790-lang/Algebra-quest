@@ -20,6 +20,8 @@ const nunito = Nunito({
 export const metadata: Metadata = {
   title: "Algebra Quest",
   description: "A 9th grade algebra skill-builder with quests, XP, streaks and boss battles.",
+  // The app has its own English / Spanish; browser auto-translation rewrites the page text and can break it.
+  other: { google: "notranslate" },
   appleWebApp: { capable: true, title: "Algebra Quest", statusBarStyle: "default" },
 };
 
@@ -32,7 +34,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="clean" className={`${baloo.variable} ${nunito.variable}`}>
+    <html lang="en" translate="no" data-theme="clean" className={`${baloo.variable} ${nunito.variable}`}>
       <body>{children}</body>
     </html>
   );

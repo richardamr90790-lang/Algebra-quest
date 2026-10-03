@@ -36,11 +36,12 @@ const flagImgs = ["do", "us"].map((f) => [f, dataUri(path.join(root, "public/fla
 const flagFix = `<script>window.AQ_FLAGS=${JSON.stringify(Object.fromEntries(flagImgs))}</script>`;
 
 const html = `<!doctype html>
-<html lang="en" data-theme="clean">
+<html lang="en" translate="no" data-theme="clean">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Algebra Quest</title>
+<meta name="google" content="notranslate">
 <style>${fonts}\n${vars}\n${css}</style>
 </head>
 <body>
