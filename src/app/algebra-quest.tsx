@@ -232,6 +232,19 @@ export default function AlgebraQuest() {
     }
   }
 
+  // If saving to the account keeps failing, say so plainly (the little "Offline" label is easy to miss).
+  const [syncDown, setSyncDown] = useState(false);
+  // Retries flip the status offline -> saving -> offline, so the clock only restarts after a successful save.
+  const downSince = useRef<number | null>(null);
+  useEffect(() => {
+    if (status === "saved") { downSince.current = null; setSyncDown(false); return; }
+    if (status === "offline" && downSince.current === null) downSince.current = Date.now();
+    const id = setInterval(() => {
+      if (downSince.current !== null && Date.now() - downSince.current >= 15000) setSyncDown(true);
+    }, 1000);
+    return () => clearInterval(id);
+  }, [status]);
+
   const playing = screen.name === "playing";
   const [hasDeviceProgress, setHasDeviceProgress] = useState(false);
   useEffect(() => {
@@ -271,6 +284,14 @@ export default function AlgebraQuest() {
           onDelete={onDelete}
           onSignOut={signOut}
         />
+      )}
+      {playing && backendEnabled && screen.learner && syncDown && (
+        <div className="save-warning" role="alert">
+          {L(
+            "⚠️ Can't reach your account right now. Your progress is still saved on this device and will sync when the connection is back. Keep using this same device and browser until then.",
+            "⚠️ Ahora mismo no se puede conectar con tu cuenta. Tu progreso sigue guardado en este dispositivo y se sincronizará cuando vuelva la conexión. Sigue usando este mismo dispositivo y navegador hasta entonces.",
+          )}
+        </div>
       )}
       {playing && backendEnabled && (
         <nav className="accountbar" aria-label={L("Account", "Cuenta")}>

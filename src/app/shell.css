@@ -40,3 +40,4 @@
 .flag-img{width:22px;height:15px;vertical-align:-2px;border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.25);margin-right:2px}
 /* Centre the card in the window (the account bar and game screens are unaffected). */
 main.shell{min-height:100dvh;display:flex;flex-direction:column;justify-content:center;box-sizing:border-box}
+
