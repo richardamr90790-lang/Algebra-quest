@@ -14,6 +14,7 @@ import { createSoundPlayer } from "./sound.js";
 import { ACHIEVEMENTS, EMPTY_STATS, newBadges, achievementById } from "./achievements.js";
 import { addActivity, buildReport, describeScore } from "./report.js";
 import { L, getLang, setLang, locale, deviceLang, rememberDeviceLang } from "./i18n.js";
+import { shouldAutoShowTour, tourSlides } from "./tour.js";
 import { loadContentTable, applyContentLanguage, contentLoaded } from "./localize.js";
 
 function checkAnswerFor(p){ return p.check || p.a; }
@@ -71,7 +72,7 @@ let storageKey = LEGACY_STORAGE_KEY;
 let onSaveHook = null;
 function defaultState(){
   return {xp:0, bestStreak:0, mastered:{}, customProblems:{}, theme:"clean", name:"", masteredDates:{}, avatar:"root",
-    updatedAt:0, resetAt:0, topicResets:{}, review:{}, placement:null, placementDismissed:false, daily:null, dailyCount:0, owned:[], frame:"", badges:{}, stats:{...EMPTY_STATS}, activity:[], lang:"", customLang:""};
+    updatedAt:0, resetAt:0, topicResets:{}, review:{}, placement:null, placementDismissed:false, daily:null, dailyCount:0, owned:[], frame:"", badges:{}, stats:{...EMPTY_STATS}, activity:[], lang:"", customLang:"", tourDone:false};
   // lang = "en" | "es" chosen for this learner ("" = follow the device / browser language, see i18n.js)
   // review[topicId] = {box, due, last, at} spaced-review schedule (see review.js).
   // activity = recent finished sessions [{at, mode, title, correct, total}], newest first (see report.js).
@@ -736,6 +737,42 @@ function placementChip(cat){
   return `<span class="placement-chip lvl-${row.level}" title="${L(`Check-in: ${row.correct} of ${row.total} right`,`Chequeo: ${row.correct} de ${row.total} correctas`)}">${lv.icon} ${L(lv.label,lv.es)}</span>`;
 }
 
+/* ---- welcome tour (see tour.js): a dialog that walks through the features; shown once to brand-new learners ---- */
+let tourEl = null;
+function closeTour(){
+  if(!tourEl) return;
+  tourEl.remove(); tourEl = null;
+  if(!state.tourDone){ state.tourDone = true; saveState(); }
+  const b = document.getElementById("tourBtn"); if(b) b.focus();
+}
+function openTour(){
+  if(tourEl) return;
+  const slides = tourSlides();
+  let i = 0;
+  tourEl = document.createElement("div");
+  tourEl.className = "tour-overlay";
+  const draw = ()=>{
+    const s = slides[i], last = i===slides.length-1;
+    tourEl.innerHTML = `<div class="tour-card" role="dialog" aria-modal="true" aria-labelledby="tourTitle">
+      <div class="tour-icon" aria-hidden="true">${s.icon}</div>
+      <h2 id="tourTitle" aria-level="1">${s.title}</h2>
+      <p>${s.text}</p>
+      <div class="tour-dots" aria-label="${L(`Step ${i+1} of ${slides.length}`,`Paso ${i+1} de ${slides.length}`)}" role="img">${slides.map((_,k)=>`<span class="${k===i?"current":""}"></span>`).join("")}</div>
+      <div class="btn-row">
+        ${i>0 ? `<button type="button" class="btn btn-ghost" id="tourPrev">${L("Back","Atrás")}</button>` : `<button type="button" class="btn btn-ghost" id="tourSkip">${L("Skip","Saltar")}</button>`}
+        <button type="button" class="btn btn-primary" id="tourNext">${last ? L("Let's go!","¡Vamos!") : L("Next →","Siguiente →")}</button>
+      </div>
+    </div>`;
+    tourEl.querySelector("#tourNext").addEventListener("click", ()=>{ if(last) closeTour(); else { i++; draw(); } });
+    const prev = tourEl.querySelector("#tourPrev"); if(prev) prev.addEventListener("click", ()=>{ i--; draw(); });
+    const skip = tourEl.querySelector("#tourSkip"); if(skip) skip.addEventListener("click", closeTour);
+    tourEl.querySelector("#tourNext").focus();
+  };
+  tourEl.addEventListener("keydown", e=>{ if(e.key==="Escape") closeTour(); });
+  document.body.appendChild(tourEl);
+  draw();
+}
+function maybeShowTour(){ if(view==="home" && shouldAutoShowTour(state)) openTour(); }
 function backHome(){
   view = "home"; session = null; render();
 }
@@ -1154,6 +1191,7 @@ export function loadLearner({key, initial=null, onSave=null} = {}){
     // Re-rolled sets saved in the other language (e.g. chosen on another device) are regenerated in this one.
     if(Object.keys(state.customProblems||{}).length && (state.customLang||"en")!==getLang()){ regenerateCustomProblems(); saveState(); }
     checkAchievements(true); reseedDisplay(); render();
+    maybeShowTour();
   };
   const want = state.lang || deviceLang();
   if(languageReady(want)){ applyLanguageNow(want); finish(); }
@@ -1290,6 +1328,7 @@ function renderHome(){
     <button type="button" class="theme-toggle" id="soundBtn" aria-pressed="${!soundMuted()}" title="${L("Turn sound effects on or off","Activa o desactiva los efectos de sonido")}">${soundMuted() ? L("🔇 Muted","🔇 Silenciado") : L("🔊 Sound","🔊 Sonido")}</button>
     <button type="button" class="theme-toggle" id="shopBtn" title="${L("Spend XP on new characters and frames","Gasta XP en personajes y marcos nuevos")}">🛍️ ${L("Shop","Tienda")}</button>
     <button type="button" class="theme-toggle" id="placementBtn" title="${L("Short check-in to find where to start","Chequeo corto para encontrar por dónde empezar")}">🧭 ${state.placement ? L("Retake check-in","Repetir chequeo") : L("Check-in","Chequeo")}</button>
+    <button type="button" class="theme-toggle" id="tourBtn" title="${L("A quick tour of everything in Algebra Quest","Un recorrido rápido por todo Algebra Quest")}">❓ ${L("Tour","Guía")}</button>
     <button type="button" class="theme-toggle" id="langBtn" lang="${getLang()==="es" ? "en" : "es"}" title="${L("Cambiar a español","Switch to English")}"><img class="flag-img" src="/flags/${getLang()==="es" ? "us" : "do"}.svg" alt="" width="22" height="15"> ${getLang()==="es" ? "English" : "Español"}</button>
     <button type="button" class="theme-toggle" id="themeToggleBtn" aria-haspopup="listbox" aria-expanded="${themePanelOpen}" title="${L("Change visual theme","Cambia el tema visual")}">
       <span class="swatch-dot" style="--sw-a:${curTheme.a};--sw-b:${curTheme.b};--sw-c:${curTheme.c}" aria-hidden="true"></span>
@@ -1431,6 +1470,7 @@ function renderHome(){
     saveState();
   });
 
+  document.getElementById("tourBtn").addEventListener("click", ()=> openTour());
   document.getElementById("langBtn").addEventListener("click", ()=> changeLanguage(getLang()==="es" ? "en" : "es"));
   document.getElementById("reportBtn").addEventListener("click", openReport);
   document.getElementById("badgesBtn").addEventListener("click", openBadges);

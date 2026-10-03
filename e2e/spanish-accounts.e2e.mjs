@@ -64,6 +64,8 @@ await signIn(A);
 await A.waitForSelector("text=¿Quién va a jugar?");
 ok((await A.textContent("main")).includes("Cerrar sesión"), "who's-playing screen is Spanish");
 await A.click(".learner-btn >> text=Sam");
+await A.waitForSelector(".tour-card");
+await A.keyboard.press("Escape"); // a new learner sees the welcome tour first
 await A.waitForSelector(".topic-card");
 ok((await A.textContent(".accountbar")).includes("Cambiar de jugador"), "account bar is Spanish");
 ok((await A.textContent(".topic-card .ttitle")).includes("Reglas de los exponentes"), "Sam's game opens in Spanish");

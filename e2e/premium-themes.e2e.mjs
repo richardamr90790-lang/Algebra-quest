@@ -15,7 +15,7 @@ const buyOnce = async (id) => { await page.click(`[data-buy="${id}"]`); await pa
 async function fresh(s) {
   await page.goto("http://localhost:3100/");
   await page.waitForSelector(".topic-card");
-  await page.evaluate(([k, st]) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify(st)); }, [KEY, { placementDismissed: true, ...s }]);
+  await page.evaluate(([k, st]) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify(st)); }, [KEY, { placementDismissed: true, tourDone: true, ...s }]);
   await page.reload(); await page.waitForSelector(".topic-card");
 }
 

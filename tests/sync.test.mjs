@@ -162,3 +162,8 @@ test("language: newest choice wins, and an unset language never wipes a chosen o
   assert.equal(mergeState(s({ lang: "es", updatedAt: 1 }), s({ lang: "", updatedAt: 2 })).lang, "es");
   assert.equal(mergeState(s({ updatedAt: 1 }), s({ updatedAt: 2 })).lang, "");
 });
+
+test("tour: once seen on any device it stays seen", () => {
+  assert.equal(mergeState(s({ tourDone: true, updatedAt: 1 }), s({ updatedAt: 2 })).tourDone, true);
+  assert.equal(mergeState(s({ updatedAt: 1 }), s({ updatedAt: 2 })).tourDone, false);
+});

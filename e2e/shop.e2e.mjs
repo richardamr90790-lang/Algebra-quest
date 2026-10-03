@@ -14,7 +14,7 @@ const buyOnce = async (id) => { await page.click(`[data-buy="${id}"]`); await pa
 
 await page.goto("http://localhost:3100/");
 await page.waitForSelector(".topic-card");
-await page.evaluate(() => { localStorage.clear(); localStorage.setItem("algebraQuestState_v1", JSON.stringify({ xp: 400, placementDismissed: true })); });
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem("algebraQuestState_v1", JSON.stringify({ xp: 400, placementDismissed: true, tourDone: true })); });
 await page.reload(); await page.waitForSelector(".topic-card");
 ok((await text(".stats-bar, .stat-chip")).includes("Lv 5"), "starts at level 5 (400 XP)");
 

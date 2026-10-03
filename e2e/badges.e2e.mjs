@@ -16,7 +16,7 @@ const TOTAL = ACHIEVEMENTS.length;
 async function fresh(extra = {}) {
   await page.goto("http://localhost:3100/");
   await page.waitForSelector(".topic-card");
-  await page.evaluate(([k, s]) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify(s)); }, [KEY, { placementDismissed: true, ...extra }]);
+  await page.evaluate(([k, s]) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify(s)); }, [KEY, { placementDismissed: true, tourDone: true, ...extra }]);
   await page.reload(); await page.waitForSelector(".topic-card");
 }
 async function enterTopic(id) {

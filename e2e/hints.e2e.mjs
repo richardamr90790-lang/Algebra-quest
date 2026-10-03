@@ -11,7 +11,7 @@ const text = (sel) => page.textContent(sel).catch(() => "");
 async function openFirstPractice(topicId) {
   await page.goto("http://localhost:3100/");
   await page.waitForSelector(".topic-card");
-  await page.evaluate(() => localStorage.clear());
+  await page.evaluate(() => { localStorage.clear(); localStorage.setItem("algebraQuestState_v1", JSON.stringify({ tourDone: true })); });
   await page.reload(); await page.waitForSelector(".topic-card");
   await page.click(`.topic-card[data-topic="${topicId}"]`);
   await page.waitForTimeout(300);

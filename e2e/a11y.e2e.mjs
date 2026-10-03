@@ -114,7 +114,7 @@ const touch = await browser.newContext({ viewport: { width: 390, height: 844 }, 
 const tp = await touch.newPage();
 await tp.route(/fonts\.g/, (r) => r.abort());
 await tp.goto("http://localhost:3100/"); await tp.waitForSelector(".topic-card");
-await tp.evaluate(([k, s]) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify(s)); }, [KEY, { ...rich("clean"), placementDismissed: true }]);
+await tp.evaluate(([k, s]) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify(s)); }, [KEY, { ...rich("clean"), placementDismissed: true, tourDone: true }]);
 await tp.reload(); await tp.waitForSelector(".topic-card");
 const tooSmall = async (page_) => page_.evaluate(() => [...document.querySelectorAll("#app button, #app input:not([type=hidden]), #app select")]
   .filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== "hidden" && (r.width < 36 || r.height < 36) && !e.classList.contains("topic-open"); })
@@ -129,7 +129,7 @@ ok(small.length === 0, `touch: every button on a question screen is at least 36p
 await touch.close();
 
 // ---------- keyboard only ----------
-await load("clean", { placementDismissed: true });
+await load("clean", { placementDismissed: true, tourDone: true });
 async function tabTo(predicate, max = 80) {
   for (let i = 0; i < max; i++) { await page.keyboard.press("Tab"); if (await page.evaluate(predicate)) return true; }
   return false;
@@ -139,7 +139,7 @@ await page.keyboard.press("Enter"); await page.waitForTimeout(400);
 ok(await page.evaluate(() => document.activeElement && document.activeElement.tagName === "H2" && !!document.activeElement.closest(".qtitle")), "opening a screen moves focus to its heading");
 await page.click("#backBtn"); await page.waitForSelector(".topic-card");
 ok(await page.evaluate(() => document.activeElement && document.activeElement.tagName === "H1"), "going back moves focus to the home heading");
-await load("clean", { placementDismissed: true });
+await load("clean", { placementDismissed: true, tourDone: true });
 await tabTo(() => document.activeElement && document.activeElement.dataset && document.activeElement.dataset.topicOpen === "1");
 const ring = await page.evaluate(() => getComputedStyle(document.activeElement.closest(".topic-card")).outlineStyle);
 ok(ring === "solid", "the focused topic card shows a visible focus ring");
