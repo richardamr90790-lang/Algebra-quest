@@ -50,6 +50,11 @@ export default function AlgebraQuest() {
     setLang(deviceLang());
   }, []);
 
+  // The sign-in screens always use the light look (the learner's own theme applies once they are playing).
+  useEffect(() => {
+    if (screen.name !== "playing") document.documentElement.setAttribute("data-theme", "clean");
+  }, [screen.name]);
+
   // Offline support (installed app / no connection).
   useEffect(() => {
     if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) {

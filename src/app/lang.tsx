@@ -24,7 +24,8 @@ export function LangToggle() {
       title={lang === "es" ? "Switch to English" : "Cambiar a español"}
       onClick={() => { setLang(next); rememberDeviceLang(next); }}
     >
-      <span aria-hidden="true">{next === "es" ? "🇩🇴" : "🇺🇸"}</span> {LANG_NAMES[next as "en" | "es"]}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="flag-img" src={`/flags/${next === "es" ? "do" : "us"}.svg`} alt="" width={22} height={15} /> {LANG_NAMES[next as "en" | "es"]}
     </button>
   );
 }
