@@ -2,7 +2,7 @@
 
 A 9th grade algebra skill-builder: 34 topics across 8 regions, flashcard quests with worked examples and guided practice, XP, streaks, avatars, six themes, read-aloud, a dictionary, and tiered Boss Battles. Problems are generated fresh, with answers built backwards from clean solutions.
 
-Everything is available in English and in Dominican Spanish (a flag button (🇩🇴 / 🇺🇸) on the home and sign-in screens; see [Languages](#languages)).
+Everything is available in English and in Dominican Spanish (a flag button (Dominican / US) on the home and sign-in screens; see [Languages](#languages)).
 
 Installable on a phone or desktop (PWA) and works offline. Progress is saved in the browser and can be exported to / imported from a file. With a Supabase project connected (see [docs/supabase-setup.md](docs/supabase-setup.md)), a parent signs in, adds learner profiles, and each learner's progress syncs across devices.
 

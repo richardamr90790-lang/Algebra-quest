@@ -1290,7 +1290,7 @@ function renderHome(){
     <button type="button" class="theme-toggle" id="soundBtn" aria-pressed="${!soundMuted()}" title="${L("Turn sound effects on or off","Activa o desactiva los efectos de sonido")}">${soundMuted() ? L("🔇 Muted","🔇 Silenciado") : L("🔊 Sound","🔊 Sonido")}</button>
     <button type="button" class="theme-toggle" id="shopBtn" title="${L("Spend XP on new characters and frames","Gasta XP en personajes y marcos nuevos")}">🛍️ ${L("Shop","Tienda")}</button>
     <button type="button" class="theme-toggle" id="placementBtn" title="${L("Short check-in to find where to start","Chequeo corto para encontrar por dónde empezar")}">🧭 ${state.placement ? L("Retake check-in","Repetir chequeo") : L("Check-in","Chequeo")}</button>
-    <button type="button" class="theme-toggle" id="langBtn" lang="${getLang()==="es" ? "en" : "es"}" title="${L("Cambiar a español","Switch to English")}"><span aria-hidden="true">${getLang()==="es" ? "🇺🇸" : "🇩🇴"}</span> ${getLang()==="es" ? "English" : "Español"}</button>
+    <button type="button" class="theme-toggle" id="langBtn" lang="${getLang()==="es" ? "en" : "es"}" title="${L("Cambiar a español","Switch to English")}"><img class="flag-img" src="/flags/${getLang()==="es" ? "us" : "do"}.svg" alt="" width="22" height="15"> ${getLang()==="es" ? "English" : "Español"}</button>
     <button type="button" class="theme-toggle" id="themeToggleBtn" aria-haspopup="listbox" aria-expanded="${themePanelOpen}" title="${L("Change visual theme","Cambia el tema visual")}">
       <span class="swatch-dot" style="--sw-a:${curTheme.a};--sw-b:${curTheme.b};--sw-c:${curTheme.c}" aria-hidden="true"></span>
       ${L("Theme","Tema")}: ${L(curTheme.name,curTheme.es)}
