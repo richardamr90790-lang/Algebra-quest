@@ -1203,13 +1203,17 @@ html[data-frame="galaxy"] .brand .mark,.frame-galaxy{box-shadow:0 0 0 3px #7c5cf
 
 .shop-icon-theme{min-height:0;width:100%;justify-content:center}
 
-/* ---- welcome tour ---- */
-.tour-overlay{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:16px;background:rgba(10,15,30,.55);backdrop-filter:blur(2px)}
-.tour-card{max-width:420px;width:100%;background:var(--surface);color:var(--fg);border:1px solid var(--border);border-radius:22px;padding:24px 22px 20px;box-shadow:var(--shadow);text-align:center}
-.tour-icon{font-size:48px;line-height:1}
-.tour-card h2{margin:10px 0 8px;font-size:24px}
-.tour-card p{margin:0 0 14px;line-height:1.5;font-size:16px;color:var(--fg)}
-.tour-dots{display:flex;justify-content:center;gap:6px;margin-bottom:14px}
-.tour-dots span{width:8px;height:8px;border-radius:50%;background:var(--border)}
-.tour-dots span.current{background:var(--accent);width:22px;border-radius:6px}
+/* ---- welcome tour: a spotlight on the real element, with a card next to it ---- */
+.tour-overlay{position:fixed;inset:0;z-index:60}
+.tour-overlay.centered{display:grid;place-items:center;padding:16px;background:rgba(10,15,30,.6)}
+.tour-spot{position:fixed;display:none;border-radius:14px;box-shadow:0 0 0 9999px rgba(10,15,30,.6),0 0 0 3px var(--accent-3,#ffd24a);pointer-events:none;transition:top .2s,left .2s,width .2s,height .2s}
+.tour-card{position:fixed;width:min(380px,calc(100vw - 16px));box-sizing:border-box;background:var(--surface);color:var(--fg);border:1px solid var(--border);border-radius:20px;padding:18px 18px 16px;box-shadow:var(--shadow);text-align:center}
+.tour-overlay.centered .tour-card{position:relative}
+.tour-icon{font-size:36px;line-height:1}
+.tour-card h2{margin:6px 0 6px;font-size:22px}
+.tour-card p{margin:0 0 12px;line-height:1.45;font-size:15px;color:var(--fg)}
+.tour-dots{display:flex;justify-content:center;gap:5px;margin-bottom:12px}
+.tour-dots span{width:7px;height:7px;border-radius:50%;background:var(--border)}
+.tour-dots span.current{background:var(--accent);width:20px;border-radius:5px}
 .tour-card .btn-row{justify-content:center}
+@media (prefers-reduced-motion:reduce){.tour-spot{transition:none}}

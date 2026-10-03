@@ -739,8 +739,10 @@ function placementChip(cat){
 
 /* ---- welcome tour (see tour.js): a dialog that walks through the features; shown once to brand-new learners ---- */
 let tourEl = null;
+let tourCleanup = null;
 function closeTour(){
   if(!tourEl) return;
+  if(tourCleanup){ tourCleanup(); tourCleanup = null; }
   tourEl.remove(); tourEl = null;
   if(!state.tourDone){ state.tourDone = true; saveState(); }
   const b = document.getElementById("tourBtn"); if(b) b.focus();
@@ -751,9 +753,31 @@ function openTour(){
   let i = 0;
   tourEl = document.createElement("div");
   tourEl.className = "tour-overlay";
+  tourEl.innerHTML = `<div class="tour-spot" aria-hidden="true"></div><div class="tour-card" role="dialog" aria-modal="true" aria-labelledby="tourTitle"></div>`;
+  const spot = tourEl.querySelector(".tour-spot"), card = tourEl.querySelector(".tour-card");
+  let target = null;
+  // Put the highlight on the real element and the card next to it (below if there is room, otherwise above).
+  const place = ()=>{
+    if(!tourEl) return;   // closed while a frame was pending
+    if(!target){
+      spot.style.display = "none"; tourEl.classList.add("centered");
+      card.style.top = ""; card.style.left = ""; return;
+    }
+    tourEl.classList.remove("centered");
+    const r = target.getBoundingClientRect(), pad = 6;
+    spot.style.display = "block";
+    spot.style.top = (r.top-pad)+"px"; spot.style.left = (r.left-pad)+"px";
+    spot.style.width = (r.width+pad*2)+"px"; spot.style.height = (r.height+pad*2)+"px";
+    const cw = card.offsetWidth, ch = card.offsetHeight, vw = innerWidth, vh = innerHeight;
+    let top = r.bottom + pad + 12;
+    if(top + ch > vh - 8) top = r.top - pad - 12 - ch;           // not enough room below
+    if(top < 8) top = Math.max(8, Math.min(vh - ch - 8, (vh - ch)/2));  // neither fits (a tall target): centre it
+    const left = Math.max(8, Math.min(vw - cw - 8, r.left + r.width/2 - cw/2));
+    card.style.top = top+"px"; card.style.left = left+"px";
+  };
   const draw = ()=>{
     const s = slides[i], last = i===slides.length-1;
-    tourEl.innerHTML = `<div class="tour-card" role="dialog" aria-modal="true" aria-labelledby="tourTitle">
+    card.innerHTML = `
       <div class="tour-icon" aria-hidden="true">${s.icon}</div>
       <h2 id="tourTitle" aria-level="1">${s.title}</h2>
       <p>${s.text}</p>
@@ -761,13 +785,19 @@ function openTour(){
       <div class="btn-row">
         ${i>0 ? `<button type="button" class="btn btn-ghost" id="tourPrev">${L("Back","Atrás")}</button>` : `<button type="button" class="btn btn-ghost" id="tourSkip">${L("Skip","Saltar")}</button>`}
         <button type="button" class="btn btn-primary" id="tourNext">${last ? L("Let's go!","¡Vamos!") : L("Next →","Siguiente →")}</button>
-      </div>
-    </div>`;
-    tourEl.querySelector("#tourNext").addEventListener("click", ()=>{ if(last) closeTour(); else { i++; draw(); } });
-    const prev = tourEl.querySelector("#tourPrev"); if(prev) prev.addEventListener("click", ()=>{ i--; draw(); });
-    const skip = tourEl.querySelector("#tourSkip"); if(skip) skip.addEventListener("click", closeTour);
-    tourEl.querySelector("#tourNext").focus();
+      </div>`;
+    card.querySelector("#tourNext").addEventListener("click", ()=>{ if(last) closeTour(); else { i++; draw(); } });
+    const prev = card.querySelector("#tourPrev"); if(prev) prev.addEventListener("click", ()=>{ i--; draw(); });
+    const skip = card.querySelector("#tourSkip"); if(skip) skip.addEventListener("click", closeTour);
+    target = s.target ? document.querySelector(s.target) : null;
+    if(target) target.scrollIntoView({block:"center", behavior:"instant"});
+    place();
+    requestAnimationFrame(place);
+    card.querySelector("#tourNext").focus({preventScroll:true});
   };
+  const onResize = ()=> place();
+  addEventListener("resize", onResize); addEventListener("scroll", onResize, true);
+  tourCleanup = ()=>{ removeEventListener("resize", onResize); removeEventListener("scroll", onResize, true); };
   tourEl.addEventListener("keydown", e=>{ if(e.key==="Escape") closeTour(); });
   document.body.appendChild(tourEl);
   draw();
