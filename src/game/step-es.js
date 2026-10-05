@@ -24,40 +24,48 @@ const MARK = /(###[^#]*(?:#[^#]+)*###)$/;
 export const splitMarker = (piece) => { const m = piece.match(MARK); return m ? [piece.slice(0, m.index), m[1]] : [piece, ""]; };
 
 // One line of text (no bullets) -> { key, toks }
+// Private-use characters stand in for the pieces taken out of the line: U+E000.. for kept spans, U+F000.. for tags.
+const KEEP0 = 0xe000, HTML0 = 0xf000;
+const KEEP_RE = /[\ue000-\uefff]/g, HTML_RE = /[\uf000-\uf7ff]/g;
 export function maskLine(line) {
   line = splitMarker(line)[0];
   const keep = [];
   let s = protect(line, keep);
   const html = []; // other tags stay in the pattern as they are
-  s = s.replace(/<\/?[a-z][^<>]*>/gi, (m) => { html.push(m); return String.fromCharCode(0xf000 + html.length - 1); });
-  const parts = s.split(/( +)/); // words and their spaces
+  s = s.replace(/<\/?[a-z][^<>]*>/gi, (m) => { html.push(m); return String.fromCharCode(HTML0 + html.length - 1); });
+  const parts = s.split(/( +)/); // words and the spaces between them
   const words = []; for (let i = 0; i < parts.length; i += 2) words.push(parts[i]);
   const math = words.map((w) => w !== "" && isStrong(w));
-  // a lone variable letter joins the math next to it only when an operator word sits beside it
+  // a lone variable letter joins the math next to it only when an operator word sits beside it ("a" is also an English word)
   words.forEach((w, i) => {
     if (math[i] || !/^[(]*[a-z][)]*[.,;:?!]*$/.test(w) || /^[(]*a[)]*[.,;:?!]*$/.test(w)) return;
-    const near = (j) => j >= 0 && j < words.length && (isOp(words[j]) || math[j] && /^[(]*[a-z]/.test(words[j]) === false && false);
-    if (near(i - 1) || near(i + 1)) math[i] = "var";
+    const near = (j) => j >= 0 && j < words.length && isOp(words[j]);
+    if (near(i - 1) || near(i + 1)) math[i] = true;
   });
-  // a pure operator word between two math words is math too
+  // a pure operator word next to math is math too
   words.forEach((w, i) => { if (!math[i] && w !== "" && isOp(w) && (math[i - 1] || math[i + 1])) math[i] = true; });
-  // build the pattern
+  // build the pattern: every run of math words becomes one token, the closing punctuation stays in the sentence
   let key = "", toks = [], cur = null;
-  const flush = () => { if (cur !== null) { let t = cur, tail = ""; const m = t.match(/[.,;:?!]+$/); if (m && !/\d[.,]\d*$/.test(t) || (m && /^[.,;:?!]+$/.test(m[0]))) { tail = m ? m[0] : ""; t = t.slice(0, t.length - tail.length); } toks.push(t); key += `{${toks.length}}` + tail; cur = null; } };
+  const flush = () => {
+    if (cur === null) return;
+    let t = cur, tail = "";
+    const m = t.match(/[.,;:?!]+$/);
+    if (m && (!/\d[.,]\d*$/.test(t) || /^[.,;:?!]+$/.test(m[0]))) { tail = m[0]; t = t.slice(0, t.length - tail.length); }
+    toks.push(t); key += `{${toks.length}}` + tail; cur = null;
+  };
   for (let i = 0; i < words.length; i++) {
     const w = words[i], sp = parts[2 * i + 1] ?? "";
-    if (math[i]) { cur = cur === null ? w : cur + (parts[2 * i - 1] ?? " ") + w; if (!(math[i + 1])) { flush(); key += sp; } else { /* space is added when the next word joins */ } }
+    if (math[i]) { cur = cur === null ? w : cur + (parts[2 * i - 1] ?? " ") + w; if (!math[i + 1]) { flush(); key += sp; } }
     else { flush(); key += w + sp; }
   }
   flush();
-  // put the other tags back and expand the kept spans inside tokens
-  const back = (t) => t.replace(/[-]/g, (c) => keep[c.charCodeAt(0) - 0xe000]);
-  const fromHtml = (t) => t.replace(/[-]/g, (c) => html[c.charCodeAt(0) - 0xf000]);
-  // placeholders that sit alone (not inside a token) are math kept verbatim: make them tokens too
+  // put the tags back, expand the kept spans inside tokens, and turn kept spans that stand alone into tokens of their own
+  const back = (t) => t.replace(KEEP_RE, (c) => keep[c.charCodeAt(0) - KEEP0]);
+  const fromHtml = (t) => t.replace(HTML_RE, (c) => html[c.charCodeAt(0) - HTML0]);
   const outToks = toks.map((t) => fromHtml(back(t)));
-  let k2 = fromHtml(key);
-  const lone = []; k2 = k2.replace(/[-]/g, (c) => { lone.push(keep[c.charCodeAt(0) - 0xe000]); return `${lone.length - 1}`; });
-  let n = outToks.length; k2 = k2.replace(/(\d+)/g, (_, i) => { outToks.push(lone[+i]); n++; return `{${n}}`; });
+  const lone = [];
+  const k2 = fromHtml(key).replace(KEEP_RE, (c) => { lone.push(keep[c.charCodeAt(0) - KEEP0]); return `\ue100${lone.length - 1}\ue101`; })
+    .replace(/\ue100(\d+)\ue101/g, (_, i) => { outToks.push(lone[+i]); return `{${outToks.length}}`; });
   return { key: k2, toks: outToks };
 }
 

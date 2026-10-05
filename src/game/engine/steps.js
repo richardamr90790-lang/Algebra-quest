@@ -425,7 +425,7 @@ export function qfSteps(a, b, c, q, dec = true) {
   if (isqrt(D) ** 2 === D) {
     const r = isqrt(D);
     s.push(st("Take the square root of the discriminant.", `√${D} = ${r}`));
-    s.push(st("Plug a, b and the square root into the formula.", `−b = −${par(b)} = ${num(-b)}`, `2a = 2 × ${par(a)} = ${num(2 * a)}`, `x = (${num(-b)} ± ${r}) / ${num(2 * a)}`));
+    s.push(st("Plug a, b and the square root into the formula.", b < 0 ? `−b = −${par(b)} = ${num(-b)}` : `−b = −${b}`, `2a = 2 × ${par(a)} = ${num(2 * a)}`, `x = (${num(-b)} ± ${r}) / ${num(2 * a)}`));
     const vals = [];
     for (const [name, sg] of [["plus", "+"], ["minus", "−"]]) {
       const topv = sg === "+" ? -b + r : -b - r; const bl = [`x = (${num(-b)} ${sg} ${r}) / ${num(2 * a)}`, `Top: ${num(-b)} ${sg} ${r} = ${num(topv)}`, `x = ${num(topv)} / ${num(2 * a)}`];
