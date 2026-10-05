@@ -29,17 +29,11 @@ function fracStr(n,d){
 }
 const SUP_DIGITS = {"0":"⁰","1":"¹","2":"²","3":"³","4":"⁴","5":"⁵","6":"⁶","7":"⁷","8":"⁸","9":"⁹","-":"⁻"};
 function toSup(n){ return String(n).split("").map(ch=>SUP_DIGITS[ch]||ch).join(""); }
-const SUB_DIGITS = {"0":"₀","1":"₁","2":"₂","3":"₃","4":"₄","5":"₅","6":"₆","7":"₇","8":"₈","9":"₉"};
-function toSub(n){ return String(n).split("").map(ch=>SUB_DIGITS[ch]||ch).join(""); }
 function fmtComma(n){ return n.toLocaleString("en-US"); }
 // " + 5" or " − 5" (with a leading space) — for splicing after a variable, e.g. "x" + pmTerm(5) -> "x + 5"
 export function pmTerm(n){ if(n===0) return ""; return n<0 ? ` − ${-n}` : ` + ${n}`; }
 // "+5" or "−5" (no leading space) — for standalone operation terms, e.g. BAL rows or "Distribute -2:"
 function pmRaw(n){ return n<0 ? `−${-n}` : `${n}`; }
-function flipOp(op){ return {"<":">", ">":"<", "≤":"≥", "≥":"≤"}[op]; }
-// Renders "a − b" as subtraction text without ever producing a confusing
-// double sign like "6 − -3" — flips to "6 + 3" when b is negative.
-function diffStr(a,b){ return `${a} ${b<0 ? "+" : "−"} ${Math.abs(b)}`; }
 function formatMoney(n){
   const r = Math.round(n*100)/100;
   return Number.isInteger(r) ? String(r) : r.toFixed(2);
@@ -87,7 +81,6 @@ function genSet(n, fn){
 }
 export const GENERATORS = {};
 // Worked steps are written in English by ./steps.js and turned into Spanish (when the language is Spanish) by step-es.js.
-const S = (steps) => steps;
 // "x = 3  or  x = 5" / "x = 3  o  x = 5" — the double spaces are the app's house style for the typed answer.
 const orAns = (ans) => L(ans.replace(" or ", "  or  "), ans.replace(" or ", "  o  "));
 
@@ -340,7 +333,7 @@ GENERATORS[13] = () => genSet(6, () => {
   const A = p*q, B = p*n + q*m, C = m*n;
   if(A<2) return null;
   const qText = poly([[A,"x²"],[B,"x"],[C,""]]);
-  let r; try{ r = acSteps(A,B,C); }catch(e){ return null; }
+  let r; try{ r = acSteps(A,B,C); }catch{ return null; }
   return {q:qText, a:r.ans, steps:r.steps};
 });
 

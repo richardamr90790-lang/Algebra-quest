@@ -45,13 +45,12 @@ export const polyStr = (co) => {
 const opWord = (sg) => (sg === "+" ? "Add" : "Subtract");
 const prep = (sg) => (sg === "+" ? "to" : "from");
 const opTxt = (sg, mag) => (sg === "+" ? P_(`+ ${mag}`) : N_(`− ${mag}`));
-const sgn = (n) => (n > 0 ? "+" : "−");
 export const start = (q) => st("Start with the problem: " + q);
 export const fin = (a) => st("Final answer: " + a);
 
 /* ---- one-variable equations and inequalities ---- */
 // A·var + K cmp C. Returns { steps, cmp, x } with the "remove K" and "divide by A" moves shown on both sides.
-export function solveSteps(A, K, cmp, C, v = "x", opts = {}) {
+export function solveSteps(A, K, cmp, C, v = "x") {
   const out = []; const rhs = C - K; const lhs = lk(A, K, v);
   const eq = cmp === "=";
   if (K !== 0) {

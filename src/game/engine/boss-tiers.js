@@ -1,6 +1,5 @@
 import { randInt, randIntNonZero, choice, pmTerm, linTerm } from "./generators.js";
-import { L, getLang } from "../i18n.js";
-import { translateStep } from "../step-es.js";
+import { L } from "../i18n.js";
 import { start, st, fin, num, par, factorSolveSteps, qfSteps, cancel } from "./steps.js";
 import { esSteps } from "./generators.js";
 
@@ -105,7 +104,7 @@ export const bossHellGenerators = [
     const line = `${linTerm(m,"x")}${pmTerm(b)}`;
     const qq = `Solve the system: y = x²  and  y = ${line}`;
     const fac = factorSolveSteps(r1,r2);
-    const mv = (c, name) => c>0 ? [`Subtract ${linTerm(c,"x")}`, `{n:− ${linTerm(c,"x")}}`] : [`Add ${linTerm(-c,"x")}`, `{p:+ ${linTerm(-c,"x")}}`];
+    const mv = (c) => c>0 ? [`Subtract ${linTerm(c,"x")}`, `{n:− ${linTerm(c,"x")}}`] : [`Add ${linTerm(-c,"x")}`, `{p:+ ${linTerm(-c,"x")}}`];
     const mTxt = linTerm(m,"x"); const [w1,o1] = mv(m); const lhsM = `x² ${m>0?"−":"+"} ${linTerm(Math.abs(m),"x")}`; const afterM = `${lhsM} = ${num(b)}`;
     const steps = [start(qq),
       st("Both equations say what y equals, so the two right sides must be equal. Substitute x² in for y in the second equation.", `y = ${line} becomes x² = ${line}`),
