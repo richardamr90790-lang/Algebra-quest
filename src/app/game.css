@@ -33,7 +33,7 @@
   --ex-purple:#7c3aed;
   --ex-blue:#1d6fd6;
   --ex-red:#d6283f;
-  --ex-green:#1e8a4c;
+  --ex-green:#1e8a4c; --ex-orange:#a84e00;
   --ex-step-bg:#fde047;
   --ex-step-fg:#422006;
   --shadow:0 10px 30px -12px rgb(23 32 46 / .25);
@@ -48,7 +48,7 @@
   --good:#1e8a4c; --bad:#c0392b; --good-tint:rgba(30,138,76,.14); --bad-tint:rgba(192,57,41,.14);
   --cat-foundations:#2454a6; --cat-equations:#6b3fa0; --cat-expressions:#0f8b8d; --cat-factoring:#b36b00;
   --cat-quadratics:#c0392b; --cat-applications:#1e7b34; --cat-graphing:#a61b6b;
-  --ex-purple:#7c3aed; --ex-blue:#1d6fd6; --ex-red:#d6283f; --ex-green:#1e8a4c; --ex-step-bg:#fde047; --ex-step-fg:#422006;
+  --ex-purple:#7c3aed; --ex-blue:#1d6fd6; --ex-red:#d6283f; --ex-green:#1e8a4c; --ex-orange:#a84e00; --ex-step-bg:#fde047; --ex-step-fg:#422006;
   --shadow:0 10px 30px -12px rgb(23 32 46 / .25); --shadow-hover:0 16px 34px -12px rgb(23 32 46 / .38);
   color-scheme: light;
 }
@@ -58,7 +58,7 @@
   --good:#54c489; --bad:#e3796d; --good-tint:rgba(84,196,137,.18); --bad-tint:rgba(227,121,109,.18);
   --cat-foundations:#6f9bdd; --cat-equations:#b592e8; --cat-expressions:#4fc7c9; --cat-factoring:#e0a858;
   --cat-quadratics:#e3796d; --cat-applications:#6fcf8e; --cat-graphing:#e38fc0;
-  --ex-purple:#b79bf5; --ex-blue:#7ab0f5; --ex-red:#f28b8b; --ex-green:#6fcf8e; --ex-step-bg:#f2c74b; --ex-step-fg:#3a2a00;
+  --ex-purple:#b79bf5; --ex-blue:#7ab0f5; --ex-red:#f28b8b; --ex-green:#6fcf8e; --ex-orange:#ffb36b; --ex-step-bg:#f2c74b; --ex-step-fg:#3a2a00;
   --shadow:0 10px 30px -12px rgb(0 0 0 / .55); --shadow-hover:0 18px 36px -10px rgb(0 0 0 / .68);
   color-scheme: dark;
 }
@@ -68,7 +68,7 @@
   --good:#3fe695; --bad:#ff5577; --good-tint:rgba(63,230,149,.16); --bad-tint:rgba(255,85,119,.16);
   --cat-foundations:#4d6bff; --cat-equations:#c24bff; --cat-expressions:#22e0ff; --cat-factoring:#ffb23e;
   --cat-quadratics:#ff5577; --cat-applications:#3fe695; --cat-graphing:#ff4fd8;
-  --ex-purple:#c793ff; --ex-blue:#6fd3ff; --ex-red:#ff7a93; --ex-green:#4ee6a0; --ex-step-bg:#ffd93e; --ex-step-fg:#2a1d00;
+  --ex-purple:#c793ff; --ex-blue:#6fd3ff; --ex-red:#ff7a93; --ex-green:#4ee6a0; --ex-orange:#ffb36b; --ex-step-bg:#ffd93e; --ex-step-fg:#2a1d00;
   --shadow:0 10px 30px -12px rgb(0 0 0 / .6); --shadow-hover:0 0 28px -2px rgb(34 224 255 / .4);
   color-scheme: dark;
 }
@@ -78,7 +78,7 @@
   --good:#7fe0a3; --bad:#e58a6d; --good-tint:rgba(127,224,163,.16); --bad-tint:rgba(229,138,109,.16);
   --cat-foundations:#6fb0d9; --cat-equations:#b592e8; --cat-expressions:#5fd9a0; --cat-factoring:#e0a858;
   --cat-quadratics:#e58a6d; --cat-applications:#8fbf7a; --cat-graphing:#d98fc0;
-  --ex-purple:#b79bf5; --ex-blue:#7ab0d9; --ex-red:#f0957e; --ex-green:#7fe0a3; --ex-step-bg:#e8d28a; --ex-step-fg:#2a2300;
+  --ex-purple:#b79bf5; --ex-blue:#7ab0d9; --ex-red:#f0957e; --ex-green:#7fe0a3; --ex-orange:#ffb36b; --ex-step-bg:#e8d28a; --ex-step-fg:#2a2300;
   --shadow:0 10px 30px -12px rgb(0 0 0 / .55); --shadow-hover:0 18px 36px -10px rgb(0 0 0 / .65);
   color-scheme: dark;
 }
@@ -88,7 +88,7 @@
   --good:#6fd99a; --bad:#ff6f6f; --good-tint:rgba(111,217,154,.18); --bad-tint:rgba(255,111,111,.18);
   --cat-foundations:#8fa8e8; --cat-equations:#c79bf0; --cat-expressions:#4fc7c0; --cat-factoring:#ff9a4d;
   --cat-quadratics:#ff6f6f; --cat-applications:#6fd99a; --cat-graphing:#ff6f61;
-  --ex-purple:#c79bf0; --ex-blue:#8fb3f0; --ex-red:#ff8f8f; --ex-green:#6fd99a; --ex-step-bg:#ffc94d; --ex-step-fg:#3a2300;
+  --ex-purple:#c79bf0; --ex-blue:#8fb3f0; --ex-red:#ff8f8f; --ex-green:#6fd99a; --ex-orange:#ffb36b; --ex-step-bg:#ffc94d; --ex-step-fg:#3a2300;
   --shadow:0 10px 30px -12px rgb(0 0 0 / .5); --shadow-hover:0 18px 36px -10px rgb(0 0 0 / .62);
   color-scheme: dark;
 }
@@ -101,7 +101,7 @@
   --good:#15935c; --bad:#d6284f; --good-tint:rgba(21,147,92,.14); --bad-tint:rgba(214,40,79,.14);
   --cat-foundations:#8a4fd1; --cat-equations:#c2186b; --cat-expressions:#d1308f; --cat-factoring:#e0548a;
   --cat-quadratics:#d6284f; --cat-applications:#ff2d87; --cat-graphing:#ff6fb0;
-  --ex-purple:#a85fe0; --ex-blue:#5f8fe0; --ex-red:#d6284f; --ex-green:#15935c; --ex-step-bg:#ffd54a; --ex-step-fg:#3a2700;
+  --ex-purple:#a85fe0; --ex-blue:#5f8fe0; --ex-red:#d6284f; --ex-green:#15935c; --ex-orange:#a84e00; --ex-step-bg:#ffd54a; --ex-step-fg:#3a2700;
   --shadow:0 10px 30px -12px rgb(90 18 72 / .22); --shadow-hover:0 16px 34px -12px rgb(90 18 72 / .32);
   --sparkle:#fff6fc;
   color-scheme: light;
@@ -447,6 +447,12 @@ button.mark::after{
 .ex-blue{color:var(--ex-blue);font-weight:800}
 .ex-red{color:var(--ex-red);font-weight:800}
 .ex-green{color:var(--ex-green);font-weight:800}
+/* the number added to / subtracted from both sides in a worked step: the sign is always written too, so colour is never the only cue */
+.ex-orange{color:var(--ex-orange);font-weight:800}
+.op-pos{color:var(--ex-green);font-weight:800}
+.op-neg{color:var(--ex-orange);font-weight:800}
+.ex-bul{margin:4px 0 4px;padding-left:22px;display:flex;flex-direction:column;gap:3px;font-weight:600}
+.ex-bul li::marker{color:var(--fg-muted)}
 .ex-final{
   margin-top:2px;padding-top:8px;border-top:1px dashed var(--border);
   font-family:var(--font-display);font-size:16px;
@@ -1142,7 +1148,7 @@ html[data-frame="galaxy"] .brand .mark,.frame-galaxy{box-shadow:0 0 0 3px #7c5cf
   --good:#7cf0b4; --bad:#ff8fa8; --good-tint:rgba(124,240,180,.16); --bad-tint:rgba(255,143,168,.16);
   --cat-foundations:#8ec5ff; --cat-equations:#d6a6ff; --cat-expressions:#5fe6d4; --cat-factoring:#ffc96b;
   --cat-quadratics:#ff8fa8; --cat-applications:#9be58f; --cat-graphing:#ff9be0;
-  --ex-purple:#d0a8ff; --ex-blue:#8ec5ff; --ex-red:#ff9aa8; --ex-green:#7cf0b4; --ex-step-bg:#f5c15a; --ex-step-fg:#2b1d00;
+  --ex-purple:#d0a8ff; --ex-blue:#8ec5ff; --ex-red:#ff9aa8; --ex-green:#7cf0b4; --ex-orange:#ffb36b; --ex-step-bg:#f5c15a; --ex-step-fg:#2b1d00;
   --shadow:0 10px 30px -12px rgb(0 0 0 / .6); --shadow-hover:0 18px 36px -10px rgb(0 0 0 / .7);
   color-scheme: dark;
 }
@@ -1153,7 +1159,7 @@ html[data-frame="galaxy"] .brand .mark,.frame-galaxy{box-shadow:0 0 0 3px #7c5cf
   --good:#6ff2b0; --bad:#ff9a8a; --good-tint:rgba(111,242,176,.16); --bad-tint:rgba(255,154,138,.16);
   --cat-foundations:#7cc4ff; --cat-equations:#b9a2ff; --cat-expressions:#4fe8d6; --cat-factoring:#ffd36e;
   --cat-quadratics:#ff9a8a; --cat-applications:#8fe8a0; --cat-graphing:#f39be0;
-  --ex-purple:#c3aeff; --ex-blue:#7cc4ff; --ex-red:#ffa395; --ex-green:#6ff2b0; --ex-step-bg:#ffd36e; --ex-step-fg:#2a2000;
+  --ex-purple:#c3aeff; --ex-blue:#7cc4ff; --ex-red:#ffa395; --ex-green:#6ff2b0; --ex-orange:#ffb36b; --ex-step-bg:#ffd36e; --ex-step-fg:#2a2000;
   --shadow:0 10px 30px -12px rgb(0 0 0 / .6); --shadow-hover:0 18px 36px -10px rgb(0 0 0 / .7);
   color-scheme: dark;
 }
@@ -1164,7 +1170,7 @@ html[data-frame="galaxy"] .brand .mark,.frame-galaxy{box-shadow:0 0 0 3px #7c5cf
   --good:#13804f; --bad:#c0294f; --good-tint:rgba(19,128,79,.14); --bad-tint:rgba(192,41,79,.14);
   --cat-foundations:#3b55d9; --cat-equations:#7a3fc4; --cat-expressions:#0f8fa6; --cat-factoring:#b3560a;
   --cat-quadratics:#c0294f; --cat-applications:#1b7f45; --cat-graphing:#b62a8f;
-  --ex-purple:#7a3fc4; --ex-blue:#3b55d9; --ex-red:#c0294f; --ex-green:#13804f; --ex-step-bg:#ffe27a; --ex-step-fg:#3a2c00;
+  --ex-purple:#7a3fc4; --ex-blue:#3b55d9; --ex-red:#c0294f; --ex-green:#13804f; --ex-orange:#a84e00; --ex-step-bg:#ffe27a; --ex-step-fg:#3a2c00;
   --shadow:0 10px 30px -12px rgb(60 40 140 / .25); --shadow-hover:0 16px 34px -12px rgb(60 40 140 / .35);
   color-scheme: light;
 }

@@ -978,11 +978,18 @@ function peekPrevExample(){
   if(session.peekPos > 0){ session.peekPos--; render(); }
 }
 // ---- Hints: the topic's rule first, then the first step of the worked solution ----
+// Step 1 of a worked solution only restates the problem, so the "first step" hint is the first real move after it.
+const RESTATES = /^(Start with the (problem|system|number)|Empieza con (el problema|el sistema|el número))/;
+function firstMove(steps){
+  if(!steps || !steps.length) return "";
+  const i = steps.findIndex(s=>!RESTATES.test(s));
+  return i === -1 ? steps[0] : steps[i];
+}
 function hintsFor(p){
   const t = TOPICS.find(x=>x.id===p.topicId);
   return {
     rule: p.howTo || (t && t.howTo) || "",
-    step: (p.steps && p.steps.length) ? p.steps[0] : "",
+    step: firstMove(p.steps),
   };
 }
 function hintBoxHTML(p){
@@ -1911,7 +1918,7 @@ function renderQuest(){
     ${p.kind==="guided" ? `<button class="btn-link" id="skipGuidedBtn">${L("Skip guided practice → start the problems","Saltar la práctica guiada → empezar los problemas")}</button>` : ""}`;
   }else{
     if(p.kind==="guided" && p.steps && p.steps.length){
-      html += `<div class="hint-box"><span class="lbl">💡 ${L("Hint","Pista")}</span>${renderStepText(p.steps[0])}</div>`;
+      html += `<div class="hint-box"><span class="lbl">💡 ${L("Hint","Pista")}</span>${renderStepText(firstMove(p.steps))}</div>`;
     }
     if(session.retryFlash){
       const note = session.diagnosis ? session.diagnosis.message : L("Give it one more try!","¡Inténtalo una vez más!");
@@ -2093,7 +2100,7 @@ const SYMBOLS = [
 let scratchDiv = null;
 function speechFromHTML(html){
   // Replace a ###GRAPH:...### marker with its caption (or a generic phrase) — it can't be read aloud as-is.
-  let s = String(html).replace(/###GRAPH:[a-z]+;[^;#]*;?([^#]*)###/g, (m, caption) => {
+  let s = expandMarkup(html).replace(/<\/li>/g, ". </li>").replace(/###GRAPH:[a-z]+;[^;#]*;?([^#]*)###/g, (m, caption) => {
     return caption && caption.trim() ? L(` the graph showing ${caption.trim()} `,` la gráfica que muestra ${caption.trim()} `) : L(" the graph shown "," la gráfica mostrada ");
   });
   // Strip any other visual markers that might sneak into spoken text.
@@ -2339,8 +2346,20 @@ function graphVisual(type, paramsCsv, caption){
   }
   return buildGraphSVG(inner, caption);
 }
+// Step text shorthand (see docs/step-style.md): "{p:+ 3}" / "{n:− 3}" colour an operation positive / negative, and lines
+// starting with "• " (after the first line) become a bullet list under the step's sentence.
+function expandMarkup(step){
+  step = String(step)
+    .replace(/\{p:([^}]*)\}/g, "<span class='op-pos'>$1</span>")
+    .replace(/\{n:([^}]*)\}/g, "<span class='op-neg'>$1</span>");
+  if(step.includes("\n• ")){
+    const [head, ...items] = step.split("\n• ");
+    return head + "<ul class='ex-bul'>" + items.map(i=>"<li>"+i+"</li>").join("") + "</ul>";
+  }
+  return step;
+}
 function renderStepText(step){
-  step = step.replace(/###DP:([^:]*):([^:]*):([^#]*)###/g, (m, keep, movedCsv, suffix) => {
+  step = expandMarkup(step).replace(/###DP:([^:]*):([^:]*):([^#]*)###/g, (m, keep, movedCsv, suffix) => {
     const moved = movedCsv ? movedCsv.split(",") : [];
     return dpVisual(keep, moved, suffix);
   });

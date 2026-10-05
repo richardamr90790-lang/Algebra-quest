@@ -77,7 +77,7 @@ await leaks(page, "topic intro");
 await page.click("#toExamplesBtn"); await page.waitForSelector("#nextExBtn");
 await leaks(page, "worked example");
 await page.click("#skipExamplesBtn, #nextExBtn");
-for (let i = 0; i < 4 && !(await page.$("#checkBlanksBtn")); i++) { await page.click("#nextExBtn").catch(() => {}); }
+for (let i = 0; i < 12 && !(await page.$("#checkBlanksBtn")); i++) { await page.click("#nextExBtn").catch(() => {}); }
 await page.waitForSelector("#checkBlanksBtn");
 await leaks(page, "guided practice");
 // answer a dropdown blank with the Spanish option, and read the Spanish step wording

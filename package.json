@@ -10,6 +10,7 @@
     "lint": "eslint",
     "build:standalone": "node scripts/build-standalone.mjs",
     "build:content": "node scripts/build-content-es.mjs",
+    "build:steps": "node scripts/build-steps-es.mjs",
     "test": "node --test \"tests/**/*.test.mjs\"",
     "e2e:local": "node e2e/offline-backup.e2e.mjs",
     "e2e:sync": "node e2e/sync.e2e.mjs",
@@ -29,6 +30,7 @@
     "e2e:save-warning": "node e2e/save-warning.e2e.mjs",
     "e2e:tour": "node e2e/tour.e2e.mjs",
     "e2e:spanish": "node e2e/spanish.e2e.mjs",
+    "e2e:steps": "node e2e/show-the-work.e2e.mjs",
     "e2e:spanish-accounts": "node e2e/spanish-accounts.e2e.mjs"
   },
   "dependencies": {

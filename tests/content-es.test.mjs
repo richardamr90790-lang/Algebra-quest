@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { collect } from "../scripts/extract-content-strings.mjs";
 import { CONTENT_ES } from "../src/game/i18n/content-es.js";
+import { STEPS_ES } from "../src/game/i18n/steps-es.js";
 
 const tags = (s) => (s.match(/<\/?[a-z][^>]*>/gi) || []).join("|");
 // the caption after the last ";" is translatable; the type and numbers are not
@@ -10,8 +11,10 @@ const blanks = (s) => (s.match(/\{\{\}\}/g) || []).length;
 // digits, operators and math symbols outside markup, in order
 const mathBits = (s) => s.replace(/<[^>]*>/g, " ").replace(/###[^#]*###/g, " ").match(/[0-9]+(?:\.[0-9]+)?|[=<>≤≥≠±√∛²³⁴⁰¹ᵗ₀-₉]+/g)?.join(" ") ?? "";
 
-test("every content string has a Spanish translation", () => {
-  const missing = [...collect().keys()].filter((s) => !(s in CONTENT_ES));
+test("every content string has a Spanish translation", async () => {
+  // whole strings come from content.tsv; worked steps are built from sentence patterns in steps.tsv
+  const { patternsOf } = await import("./helpers/patterns.mjs");
+  const missing = [...collect().keys()].filter((s) => !(s in CONTENT_ES) && [...patternsOf(s).keys()].some((k) => !(k in STEPS_ES)));
   assert.deepEqual(missing.slice(0, 5), [], `${missing.length} strings missing a translation`);
 });
 
@@ -24,6 +27,23 @@ test("translations keep markup, graph markers and blanks identical", () => {
     else if (blanks(en) !== blanks(es)) bad.push(["blanks", en]);
   }
   assert.deepEqual(bad.slice(0, 5), [], `${bad.length} structural mismatches`);
+});
+
+test("step patterns keep markup, markers and placeholders identical", () => {
+  const bad = [];
+  for (const [en, es] of Object.entries(STEPS_ES)) {
+    if (!es.trim()) bad.push(["empty", en]);
+    else if (tags(en) !== tags(es)) bad.push(["tags", en]);
+    else if ((en.match(/\{\d+\}/g) || []).sort().join() !== (es.match(/\{\d+\}/g) || []).sort().join()) bad.push(["placeholders", en]);
+    else if (/→/.test(es)) bad.push(["arrow", en]);
+  }
+  assert.deepEqual(bad.slice(0, 5), [], `${bad.length} step pattern mismatches`);
+});
+
+test("every step pattern the app can show has a Spanish pattern", async () => {
+  const { allPatterns } = await import("./helpers/patterns.mjs");
+  const missing = [...allPatterns(150).keys()].filter((k) => !(k in STEPS_ES));
+  assert.deepEqual(missing.slice(0, 5), [], `${missing.length} patterns missing from translations/steps.tsv (run node scripts/extract-step-patterns.mjs)`);
 });
 
 test("translations keep the same numbers and symbols", () => {
@@ -73,4 +93,22 @@ test("Spanish topics stay self-consistent: dropdown answers are options, answers
       for (const alt of p.alt || []) assert.ok(typeof alt === "string");
     }
   }
+});
+
+test("Spanish topics and dictionary contain no English wording", async () => {
+  const { TOPICS } = await import("../src/game/data/topics.js");
+  const { DICTIONARY_SECTIONS } = await import("../src/game/data/dictionary.js");
+  const { loadContentTable, applyContentLanguage } = await import("../src/game/localize.js");
+  await loadContentTable("es"); applyContentLanguage("es");
+  const ENGLISH = /(?<![a-záéíóúñü])(the|of|is|are|to|for|with|from|both|sides|then|find|step|answer|what|when|where|that|your|each|plug|multiply|add|subtract|equation|value|common|terms?|last|write|slope|which|does|shade|above|below|workers|hours|after|worth|grows|sum|difference|squared|price|interest|ball|ground|about|nearest|only|rewrite|combine|pull|split|flip|shared|numerators?|fraction|top|bottom|becomes|matches|neither|between|sorted|count|appears|times|more|than|any|other|largest|smallest|average|middle|problem|solve)(?![a-záéíóúñü])/i;
+  const plain = (x) => x.replace(/<[^>]*>/g, " ").replace(/###[^#]*###/g, " ").replace(/\{[pn]:[^}]*\}/g, " ");
+  const leaks = new Set();
+  const walk = (v) => {
+    if (typeof v === "string") { for (const piece of v.split("\n• ")) if (ENGLISH.test(plain(piece)) && !/\(First, Outer|\(Primeros|Inner\)/.test(piece)) leaks.add(plain(piece).slice(0, 90)); }
+    else if (Array.isArray(v)) v.forEach(walk);
+    else if (v && typeof v === "object") Object.entries(v).forEach(([k, x]) => { if (!["answers", "options", "check", "alt", "a"].includes(k)) walk(x); });
+  };
+  walk(TOPICS.map(({ id, cat, ...r }) => r)); walk(DICTIONARY_SECTIONS);
+  applyContentLanguage("en");
+  assert.deepEqual([...leaks].slice(0, 5), [], `${leaks.size} English leaks in Spanish content`);
 });

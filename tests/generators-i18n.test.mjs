@@ -5,9 +5,10 @@ import { bossHellGenerators } from "../src/game/engine/boss-tiers.js";
 import { TOPICS } from "../src/game/data/topics.js";
 import { checkEquivalence } from "../src/game/engine/equivalence.js";
 import { setLang } from "../src/game/i18n.js";
+import { loadContentTable } from "../src/game/localize.js";
 
 // Words that would show up if a generator still produced English while the language is Spanish.
-const ENGLISH = /\b(the|of|is|are|to|for|with|from|both|sides|then|find|step|answer|solve|what|when|where|that|your|each|plug|multiply|add|subtract|number|numbers|equation|value|common|term|terms|first|last|check|simplify|write|line|slope|which|does|open|closed|down|up|shade|above|below|workers|hours|miles|seconds|years|per|after|worth|grows|sum|difference|integers|consecutive|squared|root|roots|sale|price|rate|time|interest|ball|ground|about|round|nearest|tenth|solutions|only|set|rewrite|combine|group|pull|split|flip|restriction|cancel|shared|denominator|numerators?|fraction|top|bottom|conjugate|becomes|expand|matches|neither|valid|between|mean|median|range|sorted|sort|count|appears|times|more|than|any|other|largest|smallest|average|middle)\b/i;
+const ENGLISH = /(?<![a-záéíóúñü])(the|of|is|are|to|for|with|from|both|sides|then|find|step|answer|solve|what|when|where|that|your|each|plug|multiply|add|subtract|number|numbers|equation|value|common|term|terms|first|last|check|simplify|write|line|slope|which|does|open|closed|down|up|shade|above|below|workers|hours|miles|seconds|years|per|after|worth|grows|sum|difference|integers|consecutive|squared|root|roots|price|rate|time|interest|ball|ground|about|round|nearest|tenth|solutions|only|set|rewrite|combine|group|pull|split|flip|restriction|cancel|shared|denominator|numerators?|fraction|top|bottom|conjugate|becomes|expand|matches|neither|valid|between|mean|median|range|sorted|sort|count|appears|times|more|than|any|other|largest|smallest|average|middle)(?![a-záéíóúñü])/i;
 const plain = (s) => s.replace(/<[^>]*>/g, " ").replace(/###[^#]*###/g, " ");
 const SAMPLES = 25;
 
@@ -20,7 +21,8 @@ function everyProblem(fn) {
 }
 
 for (const lang of ["en", "es"]) {
-  test(`generated answers match themselves (${lang})`, () => {
+  test(`generated answers match themselves (${lang})`, async () => {
+    await loadContentTable("es");
     setLang(lang);
     everyProblem((p, where) => {
       assert.ok(checkEquivalence(p.a, p.check || p.a), `${where}: "${p.a}" should match its own answer key`);
@@ -28,7 +30,8 @@ for (const lang of ["en", "es"]) {
   });
 }
 
-test("Spanish generated text contains no English wording", () => {
+test("Spanish generated text contains no English wording", async () => {
+  await loadContentTable("es");
   setLang("es");
   const leaks = new Set();
   everyProblem((p, where) => {
