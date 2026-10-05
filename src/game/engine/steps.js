@@ -480,11 +480,11 @@ export function readSteps(m, b, eqtext, q) {
     fin(`m = ${num(m)}, b = ${num(b)}`)];
 }
 export function evalLineSteps(m, b, x0, q) {
-  const y = m * x0 + b; const mm = Math.abs(m) !== 1 ? `${m}(${num(x0)})` : m === 1 ? `(${num(x0)})` : `−(${num(x0)})`;
+  const y = m * x0 + b; const mm = `${num(m)}(${num(x0)})`;
   const sub1 = "y = " + mm + (b !== 0 ? ` ${b > 0 ? "+" : "−"} ${Math.abs(b)}` : ""); const mx = m * x0;
   return [start(q), st("Write the equation of the line using y = mx + b.", `m = ${num(m)} and b = ${num(b)}`, lineEq(m, b)),
     st(`Substitute x = ${num(x0)} into the equation.`, sub1),
-    st("Multiply first.", Math.abs(m) !== 1 ? `${par(m)} × ${par(x0)} = ${num(mx)}` : `${m === -1 ? "−" : ""}(${num(x0)}) = ${num(mx)}`, `y = ${num(mx)} ${b >= 0 ? "+" : "−"} ${Math.abs(b)}`),
+    st("Multiply first.", `${par(m)} × ${par(x0)} = ${num(mx)}`, `y = ${num(mx)} ${b >= 0 ? "+" : "−"} ${Math.abs(b)}`),
     st("Add or subtract.", `${num(mx)} ${b >= 0 ? "+" : "−"} ${Math.abs(b)} = ${num(y)}`), fin(`y = ${num(y)}`)];
 }
 export function twoPointSlope(x1, y1, x2, y2) {
@@ -499,8 +499,8 @@ export function ptSlopeSteps(x0, y0, m, q, full = true) {
   const pre = full ? [start(q)] : [];
   if (x0 === 0) return { steps: [...pre, st(`The point (0, ${num(y0)}) has x = 0, so it sits on the y-axis. That makes it the y-intercept.`, `b = ${num(y0)}`), st("Write the equation using y = mx + b.", lineEq(m, y0)), fin(lineEq(m, y0))], b: y0 };
   const K = m * x0, b = y0 - K; const [sg, mag] = K !== 0 ? cancel(K) : ["−", 0];
-  const mm = Math.abs(m) !== 1 ? `${m}(${num(x0)})` : m === 1 ? `(${num(x0)})` : `−(${num(x0)})`;
-  const mult = Math.abs(m) !== 1 ? `${m}(${num(x0)}) = ${num(K)}` : m === 1 ? `${par(x0)} = ${num(K)}` : `−(${num(x0)}) = ${num(K)}`;
+  const mm = `${num(m)}(${num(x0)})`;
+  const mult = `${num(m)}(${num(x0)}) = ${num(K)}`;
   const o = opTxt(sg, mag);
   const s = [...pre, st(`Use slope-intercept form, y = mx + b. We know m = ${num(m)} and a point on the line, x = ${num(x0)} and y = ${num(y0)}. Substitute them in.`, `${num(y0)} = ${mm} + b`),
     st("Multiply first.", mult, `So ${num(y0)} = ${num(K)} + b`),
