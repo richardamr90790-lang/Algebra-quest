@@ -16,6 +16,7 @@ import { addActivity, buildReport, describeScore } from "./report.js";
 import { L, getLang, setLang, locale, deviceLang, rememberDeviceLang } from "./i18n.js";
 import { shouldAutoShowTour, tourSlides } from "./tour.js";
 import { loadContentTable, applyContentLanguage, contentLoaded } from "./localize.js";
+import { graphTaskOf, canClick, dotsNeeded, snap, lineFromDots, answerFromState, verdict, sideOfLine, MARKER as GRAPH_MARKER, G_RANGE as GT_RANGE } from "./graphtool.js";
 
 function checkAnswerFor(p){ return p.check || p.a; }
 
@@ -1105,7 +1106,7 @@ function submitBlanks(){
 function mark(correct){
   const p = session.problems[session.pos];
   session.results[session.pos] = correct ? "good" : "bad";
-  (session.meta || (session.meta = []))[session.pos] = {hinted:(session.hintLevel||0)>0, attempts:session.attempts||0, typed:!!session.autoResult};
+  (session.meta || (session.meta = []))[session.pos] = {hinted:(session.hintLevel||0)>0 || graphToolSeen(), attempts:session.attempts||0, typed:!!session.autoResult};
   const xpBefore = state.xp;
   const lvBefore = level();
   const topicObj = session.mode==="topic" ? TOPICS.find(x=>x.id===session.topicId) : null;
@@ -1809,9 +1810,10 @@ function renderQuest(){
       </div>
     </div>
     <div class="qtext-row">
-      <div class="qtext">${renderStepText(p.q)}</div>
+      <div class="qtext">${renderStepText(graphToolTask(p) && !session.revealed ? p.q.replace(GRAPH_MARKER, "").trim() : p.q)}</div>
       <button class="play-btn" id="playQBtn" title="${L("Read this question aloud","Lee esta pregunta en voz alta")}">🔊</button>
-    </div>`;
+    </div>
+    ${graphToolHTML(p)}`;
 
   const usesBlanks = p.kind==="guided" && p.blanks && p.blanks.length;
 
@@ -2061,6 +2063,7 @@ function renderQuest(){
     });
   }
   wireSpeakButton("playQBtn", ()=> speechFromHTML(p.q));
+  wireGraphTool(p);
 }
 // Digits come first so the whole row can double as an on-screen keypad —
 // every answer on this site can be typed with the mouse alone, keyboard
@@ -2300,6 +2303,9 @@ function buildGraphSVG(innerSVG, caption){
   return `<div class="graph-wrap">${svg}${caption ? `<span class="graph-cap">${caption}</span>` : ""}</div>`;
 }
 function graphVisual(type, paramsCsv, caption){
+  return buildGraphSVG(graphInner(type, paramsCsv), caption);
+}
+function graphInner(type, paramsCsv){
   const parts = paramsCsv.split(",").map(p=>p.trim());
   let inner = "";
   const lineColor = "var(--cat-graphing)";
@@ -2344,7 +2350,202 @@ function graphVisual(type, paramsCsv, caption){
     }
     inner += `<circle cx="${gx(value)}" cy="${y}" r="6" fill="${closed ? lineColor : "var(--surface)"}" stroke="${lineColor}" stroke-width="2.5"/>`;
   }
-  return buildGraphSVG(inner, caption);
+  return inner;
+}
+
+/* ===================== INTERACTIVE GRAPH TOOL =====================
+   Graph questions (see graphtool.js) hide their picture until the problem is answered. Two extra buttons sit under the
+   question: "See it" draws the graph, "Try it on the graph" lets the learner click the answer, then "Graph it" draws the
+   real graph over it. "Use my graph as my answer" copies the answer into the answer box; Check works as before. */
+function graphToolTask(p){
+  if(!p || (p.kind!=="guided" && p.kind!=="practice")) return null;
+  return graphTaskOf(p);
+}
+function graphToolState(p){
+  const key = session.pos + "|" + p.q;
+  if(!session.gtool || session.gtool.key !== key) session.gtool = {key, mode:null, dots:[], closed:null, dashed:null, above:null, cx:null, drawn:false, seen:false, msg:""};
+  return session.gtool;
+}
+function graphToolSeen(){
+  const p = session.problems && session.problems[session.pos];
+  return !!(p && session.gtool && session.gtool.key === session.pos + "|" + p.q && session.gtool.seen);
+}
+function graphToolHTML(p){
+  const task = graphToolTask(p);
+  if(!task || session.revealed) return "";
+  const st = graphToolState(p);
+  return `<div class="gtool">
+    <div class="gtool-btns">
+      ${canClick(task) ? `<button type="button" class="btn btn-ghost gtool-btn" id="gtTryBtn" aria-pressed="${st.mode==="try"}">📈 ${L("Try it on the graph","Pruébalo en la gráfica")}</button>` : ""}
+      <button type="button" class="btn btn-ghost gtool-btn" id="gtSeeBtn" aria-pressed="${st.mode==="see"}">👁 ${L("See it","Verlo")}</button>
+    </div>
+    <div class="gtool-panel" id="gtPanel"></div>
+  </div>`;
+}
+const GT_TEXT = {
+  read:   ()=>L("Click the y-intercept, then click a second point on the line.","Haz clic en el intercepto con y y luego en un segundo punto de la recta."),
+  eval:   (t)=>L(`Click the point on the line where x = ${t.x0}.`,`Haz clic en el punto de la recta donde x = ${t.x0}.`),
+  vertex: ()=>L("Click the vertex of the parabola.","Haz clic en el vértice de la parábola."),
+  axis:   ()=>L("Click anywhere on the axis of symmetry (the vertical line through the vertex).","Haz clic en cualquier punto del eje de simetría (la recta vertical que pasa por el vértice)."),
+  circle: ()=>L("Click where the circle goes on the number line, then pick open or closed.","Haz clic donde va el círculo en la recta numérica y elige abierto o cerrado."),
+  style:  ()=>L("Click the boundary line to switch between dashed and solid.","Haz clic en la recta frontera para cambiar entre discontinua y continua."),
+  side:   ()=>L("Click above or below the line to shade that side.","Haz clic arriba o abajo de la recta para sombrear ese lado."),
+};
+const GT_WHY = {
+  need:  (t)=> ["circle","style","side"].includes(t.kind) ? L("Make your choices on the graph first.","Primero haz tus elecciones en la gráfica.") : L("Place your dot(s) on the graph first.","Primero pon tus puntos en la gráfica."),
+  line:  ()=>L("Your dots are not both on the real line. The real line is drawn in color.","Tus puntos no están los dos sobre la recta real. La recta real está dibujada en color."),
+  x:     ()=>L("Your dot is at the wrong x. Look at the real line.","Tu punto está en una x equivocada. Mira la recta real."),
+  y:     ()=>L("Your dot is not on the line. Look at where the real line is at that x.","Tu punto no está sobre la recta. Mira dónde está la recta real en esa x."),
+  vertex:()=>L("That is not the vertex. The vertex is the turning point of the real parabola.","Ese no es el vértice. El vértice es el punto donde gira la parábola real."),
+  axis:  ()=>L("That is not on the axis of symmetry. The axis goes straight up through the vertex.","Eso no está en el eje de simetría. El eje sube recto por el vértice."),
+  place: ()=>L("The circle is in the wrong place.","El círculo está en un lugar equivocado."),
+  fill:  ()=>L("Check whether the number itself is included: open means no, closed means yes.","Fíjate si el número mismo está incluido: abierto significa que no, cerrado que sí."),
+  style: ()=>L("Check the symbol: < and > are dashed, ≤ and ≥ are solid.","Fíjate en el símbolo: < y > son discontinuas, ≤ y ≥ son continuas."),
+  side:  ()=>L("Check the symbol: y greater is above the line, y less is below.","Fíjate en el símbolo: y mayor va por encima de la recta, y menor por debajo."),
+};
+function gtDot(x, y, color){
+  return `<circle cx="${gx(x)}" cy="${gy(y)}" r="5.5" fill="${color||"var(--accent-2)"}" stroke="var(--surface)" stroke-width="2"/>`;
+}
+function gtStudentLayer(task, st){
+  let s = "";
+  const mine = "var(--accent-2)";
+  if(task.kind==="read"){
+    const l = lineFromDots(st.dots[0], st.dots[1]);
+    if(l){
+      const y1 = l.mv*(-GT_RANGE)+l.bv, y2 = l.mv*GT_RANGE+l.bv;
+      s += `<line x1="${gx(-GT_RANGE)}" y1="${gy(y1)}" x2="${gx(GT_RANGE)}" y2="${gy(y2)}" stroke="${mine}" stroke-width="2" stroke-dasharray="5 4"/>`;
+    }
+  }else if(task.kind==="axis" && st.dots[0]){
+    s += `<line x1="${gx(st.dots[0].x)}" y1="${gy(-GT_RANGE)}" x2="${gx(st.dots[0].x)}" y2="${gy(GT_RANGE)}" stroke="${mine}" stroke-width="2" stroke-dasharray="5 4"/>`;
+  }
+  st.dots.forEach(d=>{ s += gtDot(d.x, d.y, mine); });
+  return s;
+}
+function gtInequalityLayer(task, st){
+  let s = "";
+  const y1 = task.m*(-GT_RANGE)+task.b, y2 = task.m*GT_RANGE+task.b, lineColor = "var(--cat-graphing)";
+  if(st.above != null){
+    const edge = st.above ? gy(GT_RANGE) : gy(-GT_RANGE);
+    s += `<polygon points="${gx(-GT_RANGE)},${gy(y1)} ${gx(GT_RANGE)},${gy(y2)} ${gx(GT_RANGE)},${edge} ${gx(-GT_RANGE)},${edge}" fill="${lineColor}" opacity="0.18"/>`;
+  }
+  s += `<line x1="${gx(-GT_RANGE)}" y1="${gy(y1)}" x2="${gx(GT_RANGE)}" y2="${gy(y2)}" stroke="${lineColor}" stroke-width="2.5" ${st.dashed ? 'stroke-dasharray="6 5"' : ""}/>`;
+  return s;
+}
+function gtNumberLineLayer(task, st){
+  let s = "", y = gy(0);
+  for(let i=-GT_RANGE;i<=GT_RANGE;i+=2) s += `<line x1="${gx(i)}" y1="${y-5}" x2="${gx(i)}" y2="${y+5}" stroke="var(--fg-muted)" stroke-width="1"/>`;
+  if(st.cx != null) s += `<circle cx="${gx(st.cx)}" cy="${y}" r="6" fill="${st.closed ? "var(--accent-2)" : "var(--surface)"}" stroke="var(--accent-2)" stroke-width="2.5"/>`;
+  return s;
+}
+function drawGraphPanel(p){
+  const panel = document.getElementById("gtPanel");
+  const task = graphToolTask(p);
+  if(!panel || !task) return;
+  const st = graphToolState(p);
+  const m = task.marker.match(GRAPH_MARKER);
+  const caption = m[3] || "";
+  if(st.mode==="see"){
+    panel.innerHTML = graphVisual(task.type, m[2], caption);
+    return;
+  }
+  if(st.mode!=="try"){ panel.innerHTML = ""; return; }
+  let inner = "";
+  if(st.drawn) inner += graphInner(task.type, m[2]);
+  if(!st.drawn || task.kind==="read" || task.kind==="eval" || task.kind==="vertex" || task.kind==="axis") inner += gtStudentLayer(task, st);
+  if(!st.drawn && (task.kind==="style" || task.kind==="side")) inner += gtInequalityLayer(task, st);
+  if(!st.drawn && task.kind==="circle") inner += gtNumberLineLayer(task, st);
+  if(st.drawn && task.kind==="circle" && st.cx != null) inner += gtNumberLineLayer(task, st).replace(/stroke="var\(--fg-muted\)"/g, 'stroke="none"');
+  const ans = answerFromState(task, st, getLang());
+  const kindBtns = task.kind==="circle" ? `<div class="gtool-pick" role="group" aria-label="${L("Open or closed","Abierto o cerrado")}">
+      <button type="button" class="btn btn-ghost gt-pick" data-pick="open" aria-pressed="${st.closed===false}">○ ${L("Open","Abierto")}</button>
+      <button type="button" class="btn btn-ghost gt-pick" data-pick="closed" aria-pressed="${st.closed===true}">● ${L("Closed","Cerrado")}</button></div>` : "";
+  const sideBtns = task.kind==="style" ? `<div class="gtool-pick" role="group">
+      <button type="button" class="btn btn-ghost gt-pick" data-pick="dashed" aria-pressed="${st.dashed===true}">┄ ${L("Dashed","Discontinua")}</button>
+      <button type="button" class="btn btn-ghost gt-pick" data-pick="solid" aria-pressed="${st.dashed===false}">─ ${L("Solid","Continua")}</button></div>`
+    : task.kind==="side" ? `<div class="gtool-pick" role="group">
+      <button type="button" class="btn btn-ghost gt-pick" data-pick="above" aria-pressed="${st.above===true}">▲ ${L("Above","Por encima")}</button>
+      <button type="button" class="btn btn-ghost gt-pick" data-pick="below" aria-pressed="${st.above===false}">▼ ${L("Below","Por debajo")}</button></div>` : "";
+  panel.innerHTML = `<div class="gtool-help">${GT_TEXT[task.kind](task)}</div>
+    ${buildGraphSVG(inner, "")}
+    ${kindBtns}${sideBtns}
+    <div class="gtool-msg" role="status" aria-live="polite">${st.msg||""}</div>
+    <div class="btn-row gtool-actions">
+      <button type="button" class="btn btn-primary" id="gtGraphBtn">${L("Graph it","Grafícalo")}</button>
+      <button type="button" class="btn btn-ghost" id="gtClearBtn">${L("Clear","Borrar")}</button>
+    </div>
+    ${ans ? `<button type="button" class="btn-link" id="gtUseBtn">${L("Use my graph as my answer","Usar mi gráfica como respuesta")}: <strong>${escapeHtml(ans)}</strong></button>` : ""}`;
+  const svg = panel.querySelector("svg");
+  svg.classList.add("graph-click");
+  svg.setAttribute("role","img");
+  svg.setAttribute("aria-label", L("Graph. Click to place your answer, or type it in the answer box instead.","Gráfica. Haz clic para poner tu respuesta, o escríbela en la caja de respuesta."));
+  svg.addEventListener("click", e=>{
+    const r = svg.getBoundingClientRect();
+    const pt = snap((e.clientX-r.left)/r.width, (e.clientY-r.top)/r.height);
+    graphToolClick(p, task, st, pt);
+  });
+  panel.querySelectorAll(".gt-pick").forEach(b=> b.addEventListener("click", ()=>{
+    const v = b.dataset.pick;
+    if(v==="open"||v==="closed") st.closed = v==="closed";
+    else if(v==="dashed"||v==="solid") st.dashed = v==="dashed";
+    else st.above = v==="above";
+    st.drawn = false; st.msg = ""; drawGraphPanel(p);
+  }));
+  document.getElementById("gtGraphBtn").addEventListener("click", ()=>{
+    const v = verdict(task, st);
+    st.drawn = true; st.seen = true;
+    st.msg = v.ok ? `✅ ${L("Your graph matches!","¡Tu gráfica coincide!")} ${L("Now type or use your answer and press Check.","Ahora escribe o usa tu respuesta y oprime Comprobar.")}` : (GT_WHY[v.why] ? GT_WHY[v.why](task) : "");
+    if(v.why==="need") st.drawn = false;
+    drawGraphPanel(p);
+  });
+  document.getElementById("gtClearBtn").addEventListener("click", ()=>{
+    Object.assign(st, {dots:[], closed:null, dashed:null, above:null, cx:null, drawn:false, msg:""});
+    drawGraphPanel(p);
+  });
+  const use = document.getElementById("gtUseBtn");
+  if(use) use.addEventListener("click", ()=> applyGraphAnswer(p, ans));
+}
+function graphToolClick(p, task, st, pt){
+  st.drawn = false; st.msg = "";
+  if(task.kind==="style"){
+    if(sideOfLine(task, pt)==="on") st.dashed = !(st.dashed===true);
+    else st.above = sideOfLine(task, pt)==="above";
+  }else if(task.kind==="side"){
+    const sd = sideOfLine(task, pt);
+    if(sd!=="on") st.above = sd==="above";
+  }else if(task.kind==="circle"){
+    st.cx = pt.x;
+  }else{
+    const need = dotsNeeded(task);
+    if(st.dots.length>=need) st.dots = [];
+    st.dots.push(pt);
+  }
+  drawGraphPanel(p);
+}
+function applyGraphAnswer(p, text){
+  const input = document.getElementById("answerInput");
+  if(input){ input.value = text; session.draftAnswer = text; input.focus(); return; }
+  const inputs = Array.from(app.querySelectorAll(".blankInput, .blankSelect"));
+  const last = inputs[inputs.length-1];
+  if(!last) return;
+  if(last.tagName==="SELECT"){
+    const opt = Array.from(last.options).find(o=>o.value===text);
+    if(opt) last.value = text;
+  }else last.value = text;
+  if(!session.draftBlanks) session.draftBlanks = {};
+  session.draftBlanks[last.dataset.si+"-"+last.dataset.bi] = last.value;
+  last.focus();
+}
+function wireGraphTool(p){
+  const task = graphToolTask(p);
+  if(!task || session.revealed) return;
+  const st = graphToolState(p);
+  const toggle = (mode)=>{ st.mode = st.mode===mode ? null : mode; if(st.mode==="see") st.seen = true;
+    const t = document.getElementById("gtTryBtn"), s2 = document.getElementById("gtSeeBtn");
+    if(t) t.setAttribute("aria-pressed", String(st.mode==="try")); if(s2) s2.setAttribute("aria-pressed", String(st.mode==="see"));
+    drawGraphPanel(p); };
+  const t = document.getElementById("gtTryBtn"); if(t) t.addEventListener("click", ()=>toggle("try"));
+  const s2 = document.getElementById("gtSeeBtn"); if(s2) s2.addEventListener("click", ()=>toggle("see"));
+  drawGraphPanel(p);
 }
 // Step text shorthand (see docs/step-style.md): "{p:+ 3}" / "{n:− 3}" colour an operation positive / negative, and lines
 // starting with "• " (after the first line) become a bullet list under the step's sentence.

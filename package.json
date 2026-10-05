@@ -31,6 +31,7 @@
     "e2e:tour": "node e2e/tour.e2e.mjs",
     "e2e:spanish": "node e2e/spanish.e2e.mjs",
     "e2e:steps": "node e2e/show-the-work.e2e.mjs",
+    "e2e:graphs": "node e2e/graph-tool.e2e.mjs",
     "e2e:spanish-accounts": "node e2e/spanish-accounts.e2e.mjs"
   },
   "dependencies": {
