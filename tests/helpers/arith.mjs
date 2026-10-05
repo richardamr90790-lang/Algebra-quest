@@ -9,7 +9,8 @@ export function plainText(s) {
     .replace(/###[^#]*###/g, " ")
     .replace(/\{[pn]:([^}]*)\}/g, "$1")
     .replace(/<[^>]*>/g, " ")
-    .replace(/&nbsp;/g, " ");
+    .replace(/&nbsp;/g, " ")
+    .replace(/(\d),(\d{3})(?!\d)/g, "$1$2").replace(/(\d),(\d{3})(?!\d)/g, "$1$2"); // 32,000 -> 32000
 }
 
 function evaluate(expr) {
@@ -33,8 +34,9 @@ export function arithmeticSlips(text) {
     let a = i - 1; while (a >= 0 && ALLOWED.test(t[a])) a--;
     let b = i + 1; while (b < t.length && ALLOWED.test(t[b])) b++;
     // a side glued to a letter (3x, x², √9) is not a plain number
-    if (/[A-Za-z√∛π]/.test(t[a] ?? "") && /[0-9()²³]/.test(t[a + 1] ?? "")) continue;
-    if (/[A-Za-z√∛π]/.test(t[b] ?? "") && /[0-9()²³]/.test(t[b - 1] ?? "")) continue;
+    // a side glued to a letter, root, caret or superscript (3x, √9, 10^(2+3), 10⁷) is not a plain number
+    if (/[A-Za-z√∛π^⁰¹⁴⁵⁶⁷⁸⁹⁻⁺]/.test(t[a] ?? "") && /[0-9()²³]/.test(t[a + 1] ?? "")) continue;
+    if (/[A-Za-z√∛π^⁰¹⁴⁵⁶⁷⁸⁹⁻⁺]/.test(t[b] ?? "") && /[0-9()²³]/.test(t[b - 1] ?? "")) continue;
     const L = t.slice(a + 1, i), R = t.slice(i + 1, b);
     // a left side that starts with a sign belongs to a longer expression when something sits right before it ("x − 3 = 0")
     if (/^\s*[+\-−]/.test(L) && /[A-Za-z0-9)²³]\s*$/.test(t.slice(0, a + 1))) continue;
