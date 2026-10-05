@@ -4,7 +4,7 @@
 // translations/steps.tsv (built into i18n/steps-es.js). The same code runs when the tables are built and when a
 // generated problem is shown, so the two always agree.
 
-const MATHCH = /[0-9+−×÷=<>≤≥≠≈±√∛²³·/^%$|∞°⁰-₟-]/;
+const MATHCH = /[0-9+−×÷=<>≤≥≠≈±√∛²³\u00b9·/^%$|∞°\u2070-\u209f\ue000-\uefff]/;
 const OPONLY = /^[+−×÷=<>≤≥≠≈±·/^|-]+$/;
 const strip = (w) => w.replace(/^[(\[]+/, "").replace(/[)\].,;:?!]+$/, "");
 const isStrong = (w) => { const c = strip(w); return c !== "" && MATHCH.test(c) && !/^[-–—]+$/.test(c); };
@@ -19,12 +19,17 @@ function protect(seg, keep) {
     .replace(/\{[pn]:[^}]*\}/g, put);
 }
 
+// A trailing ###…### marker (a balance animation or a decimal-point hop) is not part of the sentence.
+const MARK = /(###[^#]*(?:#[^#]+)*###)$/;
+export const splitMarker = (piece) => { const m = piece.match(MARK); return m ? [piece.slice(0, m.index), m[1]] : [piece, ""]; };
+
 // One line of text (no bullets) -> { key, toks }
 export function maskLine(line) {
+  line = splitMarker(line)[0];
   const keep = [];
   let s = protect(line, keep);
   const html = []; // other tags stay in the pattern as they are
-  s = s.replace(/<[^>]+>/g, (m) => { html.push(m); return String.fromCharCode(0xf000 + html.length - 1); });
+  s = s.replace(/<\/?[a-z][^<>]*>/gi, (m) => { html.push(m); return String.fromCharCode(0xf000 + html.length - 1); });
   const parts = s.split(/( +)/); // words and their spaces
   const words = []; for (let i = 0; i < parts.length; i += 2) words.push(parts[i]);
   const math = words.map((w) => w !== "" && isStrong(w));
@@ -58,6 +63,9 @@ export function maskLine(line) {
 
 export function fillTemplate(tpl, toks) { return tpl.replace(/\{(\d+)\}/g, (m, i) => toks[i - 1] ?? m); }
 
+// "Final answer: <span class='ex-red'>x = 3</span>" is translated as "Final answer: x = 3" with the red span put back.
+export const RED = /^(Final answer: )<span class='ex-red'>([\s\S]*)<\/span>$/;
+
 // A whole step: split into the label span, bullets, and translate each piece.
 const LABEL = /^(<span class='step-label'>)Step ([^<]*?)(:<\/span> )/;
 export function translateStep(step, table) {
@@ -65,11 +73,15 @@ export function translateStep(step, table) {
   let prefix = "";
   const lm = step.match(LABEL);
   if (lm) { prefix = `${lm[1]}Paso ${lm[2]}${lm[3]}`; step = step.slice(lm[0].length); }
-  const out = step.split("\n• ").map((piece) => {
-    if (piece in table) return table[piece];
+  let red = false; const rm = step.match(RED); if (rm) { red = true; step = rm[1] + rm[2]; }
+  const out = step.split("\n• ").map((piece0) => {
+    const [piece, marker] = splitMarker(piece0);
+    if (piece in table) return table[piece] + marker;
     const { key, toks } = maskLine(piece);
-    if (!(key in table)) return piece;
-    return fillTemplate(table[key], toks);
+    if (!(key in table)) return piece0;
+    return fillTemplate(table[key], toks) + marker;
   });
-  return prefix + out.join("\n• ");
+  let res = out.join("\n• ");
+  if (red) res = res.replace(/^(Respuesta final: )([\s\S]*)$/, "$1<span class='ex-red'>$2</span>");
+  return prefix + res;
 }

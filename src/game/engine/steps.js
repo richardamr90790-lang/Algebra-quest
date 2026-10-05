@@ -154,18 +154,18 @@ export function absIneqSteps(a, b, c, cmp, q) {
 /* ---- systems ---- */
 const joinParts = (parts) => parts.filter((p) => p.body !== "").reduce((s, p, i) => s + (i === 0 ? (p.neg ? M : "") : p.neg ? " − " : " + ") + p.body, "") || "0";
 const part = (c, body) => ({ neg: c < 0, body });
-const sysText = (a, b, c) => `${termsStr([[a, "x"], [b, "y"]])} = ${c}`;
+const sysText = (a, b, c) => `${termsStr([[a, "x"], [b, "y"]])} = ${num(c)}`;
 // y = m x + k substituted into  a x + b y = C  (b is +1 or −1)
 export function substSteps(m, k, a, b, C, order = 0) {
   const ye = lk(m, k); const orig = sysText(a, b, C); const A = a + b * m, K = b * k;
   const yEq = `y = ${ye}`;
   const eq1 = order === 0 ? yEq : orig, eq2 = order === 0 ? orig : yEq;
   const s = [st("Start with the system.", eq1, eq2),
-    st(`One equation already tells us what y equals: y = ${ye}. Substitute (${ye}) in for y in the OTHER equation.`, `The other equation: ${orig}`, `Replace y with (${ye}): ${termsStr([[a, "x"]])} ${b > 0 ? "+" : "−"} (${ye}) = ${C}`)];
+    st(`One equation already tells us what y equals: y = ${ye}. Substitute (${ye}) in for y in the OTHER equation.`, `The other equation: ${orig}`, `Replace y with (${ye}): ${termsStr([[a, "x"]])} ${b > 0 ? "+" : "−"} (${ye}) = ${num(C)}`)];
   const expanded = termsStr([[a, "x"], [b * m, "x"], [b * k, ""]]);
   s.push(b === 1 ? st("Remove the parentheses.", `${termsStr([[a, "x"]])} + (${ye}) = ${expanded}`)
     : st("Distribute the negative sign. It changes the sign of every term inside the parentheses.", `${termsStr([[a, "x"]])} − (${ye}) = ${expanded}`));
-  if (m !== 0) s.push(st("Combine the like terms.", `${lin(a)} ${b * m >= 0 ? "+" : "−"} ${lin(Math.abs(b * m))} = ${lin(A)}`, `So the equation is ${lk(A, K)} = ${C}`));
+  if (m !== 0) s.push(st("Combine the like terms.", `${lin(a)} ${b * m >= 0 ? "+" : "−"} ${lin(Math.abs(b * m))} = ${lin(A)}`, `So the equation is ${lk(A, K)} = ${num(C)}`));
   const r = solveSteps(A, K, "=", C); s.push(...r.steps); const x = r.x; const y = m * x + k;
   const xs = num(x); const head = m === 1 ? xs : m === -1 ? (x < 0 ? `−(${xs})` : `−${xs}`) : `${m}(${xs})`;
   const sub1 = k === 0 ? head : `${head} ${k > 0 ? "+" : "−"} ${Math.abs(k)}`;
@@ -187,34 +187,34 @@ export function elimSteps(eq1, eq2) {
   const l1 = t1.split(" = ")[0], l2 = t2.split(" = ")[0]; let csum, rs;
   if (add) {
     csum = ca1 + ca2; rs = c1 + c2;
-    s.push(st("ADD the two equations. Add the left sides together and add the right sides together.", `(${l1}) + (${l2}) = ${c1} + ${c2}`,
+    s.push(st("ADD the two equations. Add the left sides together and add the right sides together.", `(${l1}) + (${l2}) = ${num(c1)} + ${num(c2)}`,
       `${keep} terms: ${lin(ca1, keep)} ${ca2 >= 0 ? "+" : "−"} ${lin(Math.abs(ca2), keep)} = ${lin(csum, keep)}`, `${v} terms: ${lin(cv1, v)} ${cv2 >= 0 ? "+" : "−"} ${lin(Math.abs(cv2), v)} = 0`,
-      `Right side: ${c1} + ${c2} = ${rs}`, `So ${lin(csum, keep)} = ${rs}`));
+      `Right side: ${num(c1)} + ${num(c2)} = ${num(rs)}`, `So ${lin(csum, keep)} = ${num(rs)}`));
   } else {
     csum = ca1 - ca2; rs = c1 - c2;
-    s.push(st("SUBTRACT the second equation from the first. Subtract the left sides and subtract the right sides.", `(${l1}) − (${l2}) = ${c1} − ${c2}`,
+    s.push(st("SUBTRACT the second equation from the first. Subtract the left sides and subtract the right sides.", `(${l1}) − (${l2}) = ${num(c1)} − ${num(c2)}`,
       ca1 !== ca2 ? `${keep} terms: ${lin(ca1, keep)} ${ca2 >= 0 ? "−" : "+"} ${lin(Math.abs(ca2), keep)} = ${lin(csum, keep)}` : `${keep} terms: ${lin(ca1, keep)} − ${lin(ca2, keep)} = 0`,
       cv1 !== cv2 ? `${v} terms: ${lin(cv1, v)} ${cv2 >= 0 ? "−" : "+"} ${lin(Math.abs(cv2), v)} = ${lin(cv1 - cv2, v)}` : `${v} terms: ${lin(cv1, v)} − ${lin(cv2, v)} = 0`,
-      `Right side: ${c1} − ${c2} = ${rs}`, `So ${csum !== 0 ? lin(csum, keep) : lin(cv1 - cv2, v)} = ${rs}`));
+      `Right side: ${num(c1)} − ${num(c2)} = ${num(rs)}`, `So ${csum !== 0 ? lin(csum, keep) : lin(cv1 - cv2, v)} = ${num(rs)}`));
   }
   let lv, coef; if (!add && csum === 0) [lv, coef] = [v, cv1 - cv2]; else [lv, coef] = [keep, csum];
   const val = rs / coef;
   if (coef !== 1) {
     const o = coef > 0 ? P_(`÷ ${coef}`) : N_(`÷ (${num(coef)})`);
-    s.push(st(`Get ${lv} alone. Divide BOTH sides by ${num(coef)}.`, `${lin(coef, lv)} ${o} = ${rs} ${o}`, `Left side: ${lin(coef, lv)} ÷ ${par(coef)} = ${lv}`, `Right side: ${rs} ÷ ${par(coef)} = ${num(val)}`, `So ${lv} = ${num(val)}`));
+    s.push(st(`Get ${lv} alone. Divide BOTH sides by ${num(coef)}.`, `${lin(coef, lv)} ${o} = ${num(rs)} ${o}`, `Left side: ${lin(coef, lv)} ÷ ${par(coef)} = ${lv}`, `Right side: ${num(rs)} ÷ ${par(coef)} = ${num(val)}`, `So ${lv} = ${num(val)}`));
   }
   // plug back into the first equation
   const other = lv === "x" ? "y" : "x"; const [kc, oc] = lv === "x" ? [a1, b1] : [b1, a1]; const K = kc * val; const rem = c1 - K;
   const kTerm = Math.abs(kc) === 1 ? `(${num(val)})` : `${Math.abs(kc)}(${num(val)})`;
   const ordered = (kPart, oPart) => (lv === "x" ? [kPart, oPart] : [oPart, kPart]);
   const replaced = joinParts(ordered({ neg: kc < 0, body: kTerm }, part(oc, lin(Math.abs(oc), other))));
-  const pl = [`Use the equation ${t1}`, `Replace ${lv} with ${num(val)}: ${replaced} = ${c1}`];
+  const pl = [`Use the equation ${t1}`, `Replace ${lv} with ${num(val)}: ${replaced} = ${num(c1)}`];
   if (Math.abs(kc) !== 1) pl.push(`Multiply: ${kc} × ${par(val)} = ${num(K)}`);
   const kBody = K === 0 ? "" : String(Math.abs(K)); const eqTxt = joinParts(ordered(part(K, kBody), part(oc, lin(Math.abs(oc), other))));
-  pl.push(`So the equation is ${eqTxt} = ${c1}`);
+  pl.push(`So the equation is ${eqTxt} = ${num(c1)}`);
   if (K !== 0) {
     const [sg, mag] = cancel(K); const o = opTxt(sg, mag);
-    pl.push(`${opWord(sg)} ${mag} ${prep(sg)} BOTH sides: ${eqTxt} ${o} = ${c1} ${o}`, `Left side: ${num(K)} ${sg === "+" ? "+" : M} ${mag} = 0, so ${lin(oc, other)} is left`, `Right side: ${c1} ${sg === "+" ? "+" : M} ${mag} = ${num(rem)}`);
+    pl.push(`${opWord(sg)} ${mag} ${prep(sg)} BOTH sides: ${eqTxt} ${o} = ${num(c1)} ${o}`, `Left side: ${num(K)} ${sg === "+" ? "+" : M} ${mag} = 0, so ${lin(oc, other)} is left`, `Right side: ${num(c1)} ${sg === "+" ? "+" : M} ${mag} = ${num(rem)}`);
   }
   pl.push(`So ${lin(oc, other)} = ${num(rem)}`);
   const ov = rem / oc;
