@@ -39,7 +39,7 @@ export function arithmeticSlips(text) {
     if (/[A-Za-z√∛π^⁰¹⁴⁵⁶⁷⁸⁹⁻⁺]/.test(t[b] ?? "") && /[0-9()²³]/.test(t[b - 1] ?? "")) continue;
     const L = t.slice(a + 1, i), R = t.slice(i + 1, b);
     // a left side that starts with a sign belongs to a longer expression when something sits right before it ("x − 3 = 0")
-    if (/^\s*[+\-−]/.test(L) && /[A-Za-z0-9)²³]\s*$/.test(t.slice(0, a + 1))) continue;
+    if (/^\s*[+\-−]/.test(L) && /[A-Za-z0-9)²³\u2070-\u2079]\s*$/.test(t.slice(0, a + 1))) continue;
     // a "−" or "+" just before the left side that we did not take (e.g. "x − 3 + 3 = 7") means a longer expression
     if (/[+\-−×·÷*/(]\s*$/.test(t.slice(0, a + 1)) || /^\s*[+\-−×·÷*/^]/.test(t.slice(b))) continue;
     const lv = evaluate(L), rv = evaluate(R);

@@ -31,7 +31,7 @@ export const DICTIONARY_SECTIONS = [
     {term:"Solution", def:"A value that makes an equation or inequality true.", example:"x = 3 is the solution to x + 2 = 5."},
     {term:"System of Equations", def:"Two or more equations that share the same variables, solved together.", example:"y = x + 2 and x + y = 10"},
     {term:"Substitution Method", def:"Solving a system by replacing one variable with an equivalent expression from the other equation.", example:"If y = x + 2, substitute (x+2) in for y elsewhere."},
-    {term:"Elimination Method", def:"Solving a system by adding or subtracting the equations (after scaling, if needed) so one variable cancels.", example:"2x+3y=7 and 3x−2y=4 → scale and add to cancel y."},
+    {term:"Elimination Method", def:"Solving a system by adding or subtracting the equations (after scaling, if needed) so one variable cancels.", example:"For 2x+3y=7 and 3x−2y=4, multiply the first equation by 2 and the second by 3. The y terms become 6y and −6y, so adding the equations cancels y."},
     {term:"Absolute Value", def:"The distance a number is from 0 on the number line — always positive or zero.", example:"|−5| = 5"},
     {term:"Compound Inequality", def:"Two inequalities joined by \"and\" (between two values) or \"or\" (two separate ranges).", example:"−3 < x < 5   or   x < −2 or x > 6"},
   ]},
