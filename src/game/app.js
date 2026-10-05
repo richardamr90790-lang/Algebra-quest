@@ -2093,7 +2093,7 @@ const SYMBOLS = [
 let scratchDiv = null;
 function speechFromHTML(html){
   // Replace a ###GRAPH:...### marker with its caption (or a generic phrase) — it can't be read aloud as-is.
-  let s = String(html).replace(/###GRAPH:[a-z]+;[^;#]*;?([^#]*)###/g, (m, caption) => {
+  let s = expandMarkup(html).replace(/<\/li>/g, ". </li>").replace(/###GRAPH:[a-z]+;[^;#]*;?([^#]*)###/g, (m, caption) => {
     return caption && caption.trim() ? L(` the graph showing ${caption.trim()} `,` la gráfica que muestra ${caption.trim()} `) : L(" the graph shown "," la gráfica mostrada ");
   });
   // Strip any other visual markers that might sneak into spoken text.
@@ -2339,8 +2339,20 @@ function graphVisual(type, paramsCsv, caption){
   }
   return buildGraphSVG(inner, caption);
 }
+// Step text shorthand (see docs/step-style.md): "{p:+ 3}" / "{n:− 3}" colour an operation positive / negative, and lines
+// starting with "• " (after the first line) become a bullet list under the step's sentence.
+function expandMarkup(step){
+  step = String(step)
+    .replace(/\{p:([^}]*)\}/g, "<span class='op-pos'>$1</span>")
+    .replace(/\{n:([^}]*)\}/g, "<span class='op-neg'>$1</span>");
+  if(step.includes("\n• ")){
+    const [head, ...items] = step.split("\n• ");
+    return head + "<ul class='ex-bul'>" + items.map(i=>"<li>"+i+"</li>").join("") + "</ul>";
+  }
+  return step;
+}
 function renderStepText(step){
-  step = step.replace(/###DP:([^:]*):([^:]*):([^#]*)###/g, (m, keep, movedCsv, suffix) => {
+  step = expandMarkup(step).replace(/###DP:([^:]*):([^:]*):([^#]*)###/g, (m, keep, movedCsv, suffix) => {
     const moved = movedCsv ? movedCsv.split(",") : [];
     return dpVisual(keep, moved, suffix);
   });
