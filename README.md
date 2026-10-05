@@ -60,6 +60,9 @@ npm run build && npm start
 | `src/game/localize.js` | Switches `TOPICS` and the dictionary between languages in place (loads the Spanish table on demand) |
 | `src/game/i18n/content-es.js` | GENERATED English → Spanish table for all topic and dictionary text, built from `translations/content.tsv` |
 | `translations/content.tsv` | The Spanish translations of the topic and dictionary text (one `english<TAB>spanish` row per string) |
+| `src/game/engine/steps.js` | English builders for fully worked solutions (every step, operations shown on both sides); the generators and Hell Mode problems use them |
+| `src/game/step-es.js` | Turns finished English steps into Spanish by lifting out the math and matching the sentence pattern |
+| `translations/steps.tsv` | The Spanish sentence patterns for worked steps (`{1}`, `{2}` stand for the math); built into `src/game/i18n/steps-es.js` by `npm run build:steps` |
 | `src/game/app.js` | State, screens and rendering (still the original imperative UI, to be split up) |
 | `public/themes/` | Theme background art: the six free themes (extracted from the original single file) and the three premium ones (`glam`, `tide`, `holo`, each with a small `-thumb` for the shop) |
 | `public/sw.js` | Service worker: pages network-first, static files cache-first |
@@ -73,11 +76,12 @@ How it fits together:
 
 - **Interface text** is written inline with `L("English", "Español")`, so the two versions sit side by side.
 - **Topic and dictionary text** stays English in `src/game/data/`. `translations/content.tsv` maps every English string to Spanish; `npm run build:content` regenerates `src/game/i18n/content-es.js` from it. `localize.js` rewrites `TOPICS` in place from a pristine English copy when the language changes.
-- **Generated practice problems** use `L()` inside the generators, so they come out in the current language. Changing language regenerates any re-rolled practice sets.
+- **Worked steps** (examples, guided steps, step-by-step breakdowns, generated problems) are written in English only, in the style of [docs/step-style.md](docs/step-style.md). `step-es.js` lifts every run of math (numbers, expressions) out of a sentence and looks the sentence pattern up in `translations/steps.tsv`, so "Subtract 3 from BOTH sides." and "Subtract 7 from BOTH sides." share one Spanish sentence. `node scripts/extract-step-patterns.mjs` lists patterns that still need a Spanish version; `npm run build:steps` rebuilds the table.
+- **Generated practice problems** use `L()` for the question and answer, and the worked steps come from `steps.js` (translated by pattern, see above). Changing language regenerates any re-rolled practice sets.
 - **Answers**: `o` works like `or`, accents are ignored, and Spanish unit words (`millas`, `horas`, `donde`...) are ignored like their English twins. Typed English answers still work.
 - **Read-aloud** speaks Spanish with the best Spanish voice on the device (Dominican first when it has one).
 
-When you add or change English text, update `translations/content.tsv` (the tests list anything missing), run `npm run build:content`, and run `npm test`. `node scripts/extract-content-strings.mjs` lists every string that needs a translation. The Spanish was written for a Dominican audience but has not been reviewed by a native speaker, so terminology feedback is welcome.
+When you add or change English text, update `translations/content.tsv` (and `translations/steps.tsv` for worked steps; the tests list anything missing), run `npm run build:content` and `npm run build:steps`, and run `npm test`. `node scripts/extract-content-strings.mjs` lists every string that needs a translation. The Spanish was written for a Dominican audience but has not been reviewed by a native speaker, so terminology feedback is welcome.
 
 ## Single-file download
 

@@ -978,11 +978,18 @@ function peekPrevExample(){
   if(session.peekPos > 0){ session.peekPos--; render(); }
 }
 // ---- Hints: the topic's rule first, then the first step of the worked solution ----
+// Step 1 of a worked solution only restates the problem, so the "first step" hint is the first real move after it.
+const RESTATES = /^(Start with the (problem|system|number)|Empieza con (el problema|el sistema|el número))/;
+function firstMove(steps){
+  if(!steps || !steps.length) return "";
+  const i = steps.findIndex(s=>!RESTATES.test(s));
+  return i === -1 ? steps[0] : steps[i];
+}
 function hintsFor(p){
   const t = TOPICS.find(x=>x.id===p.topicId);
   return {
     rule: p.howTo || (t && t.howTo) || "",
-    step: (p.steps && p.steps.length) ? p.steps[0] : "",
+    step: firstMove(p.steps),
   };
 }
 function hintBoxHTML(p){
@@ -1911,7 +1918,7 @@ function renderQuest(){
     ${p.kind==="guided" ? `<button class="btn-link" id="skipGuidedBtn">${L("Skip guided practice → start the problems","Saltar la práctica guiada → empezar los problemas")}</button>` : ""}`;
   }else{
     if(p.kind==="guided" && p.steps && p.steps.length){
-      html += `<div class="hint-box"><span class="lbl">💡 ${L("Hint","Pista")}</span>${renderStepText(p.steps[0])}</div>`;
+      html += `<div class="hint-box"><span class="lbl">💡 ${L("Hint","Pista")}</span>${renderStepText(firstMove(p.steps))}</div>`;
     }
     if(session.retryFlash){
       const note = session.diagnosis ? session.diagnosis.message : L("Give it one more try!","¡Inténtalo una vez más!");

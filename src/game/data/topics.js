@@ -104,7 +104,7 @@ export const TOPICS = [
    why:"Used anytime a number is huge (distances in space) or tiny (the size of a cell) so you don't write a wall of zeros.",
    howTo:"For a big number, move the decimal point LEFT until exactly one digit is in front. The number of places you moved becomes a POSITIVE exponent on the 10. For a tiny number, move the decimal RIGHT instead, and the exponent is NEGATIVE. To go back to standard form, move the decimal the opposite way from what the exponent says. To multiply two numbers in scientific notation, multiply the front numbers and ADD the exponents. To divide, divide the front numbers and SUBTRACT the exponents.",
    terms:[
-     {"term":"Scientific Notation","def":"A way to write very large or very small numbers as a number between 1 and 10 multiplied by a power of 10.","example":"6.7 × 10⁴ means 6.7 multiplied by 10,000."},
+     {"term":"Scientific Notation","def":"A way to write very large or very small numbers as a number between 1 and 10 multiplied by a power of 10.","example":"6.7 × 10⁴ means 6.7 multiplied by 10,000, and 6.7 × 10,000 = 67,000."},
    ],
    examples:[
      {title:"A Big Number to Scientific Notation", lines:[
@@ -463,7 +463,7 @@ export const TOPICS = [
    why:"Often faster than substitution and the method you'll reach for most in later math courses.",
    howTo:"Line the two equations up. If one variable's coefficients are exact opposites (like +y and −y), ADD the equations to cancel it. If they are identical (like +y and +y), SUBTRACT instead. Solve for the variable that is left, then plug that answer into either original equation to find the other one.",
    terms:[
-     {"term":"Elimination","def":"Solving a system by adding or subtracting the equations so one variable cancels out.","example":"Adding (x+y=5) and (x−y=1) cancels y, leaving 2x=6."},
+     {"term":"Elimination","def":"Solving a system by adding or subtracting the equations so one variable cancels out.","example":"Adding (x + y = 5) and (x − y = 1): x + x = 2x, y − y = 0 and 5 + 1 = 6. So y cancels, leaving 2x = 6."},
    ],
    examples:[
      {title:"Adding to Eliminate", lines:[
@@ -560,7 +560,7 @@ export const TOPICS = [
    howTo:"Find the greatest number that divides every coefficient evenly, and the smallest power of the variable that shows up in EVERY term. Together those make the GCF. Divide each term by the GCF and write the GCF out front, with what is left in parentheses.",
    terms:[
      {"term":"Coefficient","def":"The number multiplied in front of a variable.","example":"In 6x², the coefficient is 6."},
-     {"term":"GCF (Greatest Common Factor)","def":"The largest expression that divides evenly into every term.","example":"The GCF of 6x² and 9x is 3x."},
+     {"term":"GCF (Greatest Common Factor)","def":"The largest expression that divides evenly into every term.","example":"The GCF of 6x² and 9x is 3x, because 6x² = 3x · 2x and 9x = 3x · 3."},
    ],
    examples:[
      {title:"Factoring Out the GCF", lines:[
@@ -613,7 +613,7 @@ export const TOPICS = [
    why:"A pattern worth memorizing — it appears constantly in factoring and simplifying rational expressions.",
    howTo:"One perfect square MINUS another perfect square always factors into (a − b)(a + b). Take the square root of the first term to get a, and the square root of the second term to get b, then drop them straight into that pattern.",
    terms:[
-     {"term":"Difference of Squares","def":"An expression in the form a² − b², which always factors into (a − b)(a + b).","example":"x² − 16 = (x − 4)(x + 4)"},
+     {"term":"Difference of Squares","def":"An expression in the form a² − b², which always factors into (a − b)(a + b).","example":"x² − 16 = (x − 4)(x + 4), because x² is x squared and 16 is 4 squared."},
    ],
    examples:[
      {title:"A Basic Case", lines:[
@@ -716,7 +716,7 @@ export const TOPICS = [
    why:"Also used to find the vertex of a parabola, and it's how the quadratic formula itself is derived.",
    howTo:"Move the constant to the other side. Take HALF of the x-coefficient, square it, and add that number to BOTH sides. The left side is now a perfect square, so write it as (x + that half)². Take the square root of both sides (do not forget ±), then solve both cases.",
    terms:[
-     {"term":"Perfect Square Trinomial","def":"A trinomial that factors into (x + n)² for some number n.","example":"x² + 6x + 9 = (x + 3)²"},
+     {"term":"Perfect Square Trinomial","def":"A trinomial that factors into (x + n)² for some number n.","example":"x² + 6x + 9 = (x + 3)², because x · x = x², 3 · 3 = 9 and 2 · x · 3 = 6x."},
    ],
    examples:[
      {title:"Completing the Square", lines:[
@@ -775,7 +775,7 @@ export const TOPICS = [
    why:"The one method that solves ANY quadratic, even ones that don't factor nicely.",
    howTo:"Write the equation as ax² + bx + c = 0 and identify a, b and c (watch the signs!). Plug them into x = (−b ± √(b² − 4ac)) / (2a) and simplify carefully, one piece at a time.",
    terms:[
-     {"term":"Discriminant","def":"The part under the square root in the quadratic formula, b² − 4ac.","example":"For x² + 3x − 10 = 0, the discriminant is 9 + 40 = 49."},
+     {"term":"Discriminant","def":"The part under the square root in the quadratic formula, b² − 4ac.","example":"For x² + 3x − 10 = 0, a = 1, b = 3 and c = −10, so b² − 4ac = 3² − 4(1)(−10) = 9 + 40 = 49."},
    ],
    examples:[
      {title:"Using the Formula", lines:[
@@ -835,7 +835,7 @@ export const TOPICS = [
    howTo:"Define a variable for the unknown. Translate the words into an equation piece by piece (\"% off\" means multiply by (1 − the rate), and consecutive integers are x, x + 1, x + 2 and so on). Solve the equation, then double-check that you answered the question that was actually asked.",
    terms:[
      {"term":"Consecutive Integers","def":"Whole numbers that follow one after another.","example":"5, 6, 7 are consecutive integers."},
-     {"term":"Simple Interest","def":"Interest calculated only on the original amount, using I = Prt (Principal × rate × time).","example":"$500 at 4% for 3 years earns $60."},
+     {"term":"Simple Interest","def":"Interest calculated only on the original amount, using I = Prt (Principal × rate × time).","example":"$500 at 4% for 3 years earns 500 × 0.04 × 3 = $60."},
    ],
    examples:[
      {title:"Percent Off", lines:[
@@ -949,7 +949,7 @@ export const TOPICS = [
    howTo:"Find the slope first if you do not already have it: m = (change in y) ÷ (change in x). Plug the slope and ONE known point into y = mx + b and solve for b. Write the final equation as y = mx + b. For parallel lines, use the SAME slope. For perpendicular lines, flip the slope and change its sign (the negative reciprocal).",
    terms:[
      {"term":"Parallel Lines","def":"Lines that never cross — they have the exact same slope.","example":"y = 2x + 1 and y = 2x − 5 are parallel."},
-     {"term":"Perpendicular Lines","def":"Lines that cross at a right angle — their slopes are negative reciprocals of each other.","example":"Slopes 2 and −1/2 are perpendicular."},
+     {"term":"Perpendicular Lines","def":"Lines that cross at a right angle — their slopes are negative reciprocals of each other.","example":"Slopes 2 and −1/2 are perpendicular, because the reciprocal of 2 is 1/2, and changing its sign gives −1/2."},
    ],
    examples:[
      {title:"Writing From a Point & Slope", lines:[
@@ -1002,7 +1002,7 @@ export const TOPICS = [
    terms:[
      {"term":"Function","def":"A rule that takes exactly one output for every input.","example":"f(x) = 2x + 1 doubles the input and adds 1."},
      {"term":"Domain","def":"The complete set of allowed input (x) values.","example":"For f(x) = 1/x, the domain is all real numbers except x = 0."},
-     {"term":"Range","def":"The complete set of possible output (y) values.","example":"For f(x) = x², the range is y ≥ 0."},
+     {"term":"Range","def":"The complete set of possible output (y) values.","example":"For f(x) = x², the range is y ≥ 0, because a squared number is never negative."},
    ],
    examples:[
      {title:"Evaluating f(x)", lines:[
@@ -1205,7 +1205,7 @@ export const TOPICS = [
    why:"The go-to method once a trinomial has a leading coefficient that isn't 1, or when you're handed a four-term polynomial directly.",
    howTo:"Split the middle term into two terms whose product matches a × c and whose sum matches b (just like the ac method). Group the four terms into two pairs. Pull the GCF out of each pair. If both pairs now share the same leftover factor, pull THAT out too. That is your final factored form.",
    terms:[
-     {"term":"Grouping","def":"Splitting a four-term expression into two pairs, each with its own common factor, to reveal a shared factor.","example":"x³+3x²+2x+6 groups into x²(x+3)+2(x+3)."},
+     {"term":"Grouping","def":"Splitting a four-term expression into two pairs, each with its own common factor, to reveal a shared factor.","example":"x³ + 3x² + 2x + 6 groups into (x³ + 3x²) + (2x + 6). Then x³ + 3x² = x²(x + 3) and 2x + 6 = 2(x + 3), so the result is x²(x + 3) + 2(x + 3)."},
    ],
    examples:[
      {title:"Grouping a Four-Term Polynomial", lines:[
@@ -1247,8 +1247,8 @@ export const TOPICS = [
    why:"These two shapes show up constantly and factor in ONE quick move each — spotting them saves you from doing the long trinomial or grouping method.",
    howTo:"A perfect square trinomial (a² ± 2ab + b²) factors as (a ± b)². A sum or difference of cubes (a³ ± b³) factors as (a ± b)(a² ∓ ab + b²). Notice that the middle sign always flips in the second factor.",
    terms:[
-     {"term":"Perfect Square Trinomial","def":"A trinomial that is the result of squaring a binomial.","example":"x² + 6x + 9 = (x + 3)²."},
-     {"term":"Sum/Difference of Cubes","def":"A two-term expression where both terms are perfect cubes.","example":"x³ + 8 is a sum of cubes (x³ and 2³)."},
+     {"term":"Perfect Square Trinomial","def":"A trinomial that is the result of squaring a binomial.","example":"x² + 6x + 9 = (x + 3)², because x · x = x², 3 · 3 = 9 and 2 · x · 3 = 6x."},
+     {"term":"Sum/Difference of Cubes","def":"A two-term expression where both terms are perfect cubes.","example":"x³ + 8 is a sum of cubes (x³ and 2³), because 2 × 2 × 2 = 8."},
    ],
    examples:[
      {title:"Perfect Square Trinomial", lines:[
@@ -1352,7 +1352,7 @@ export const TOPICS = [
    why:"Lets you see the parabola's shape instantly — where it turns around, which way it opens, and its mirror line — without plotting a dozen points.",
    howTo:"In vertex form y = a(x − h)² + k, the vertex is (h, k). Be careful: h takes the OPPOSITE sign from the one shown inside the parentheses. The axis of symmetry is the vertical line x = h. If a > 0 the parabola opens up (a U-shape). If a < 0 it opens down.",
    terms:[
-     {"term":"Vertex","def":"The highest or lowest point of a parabola, where it turns around.","example":"y = (x−3)² + 2 has vertex (3, 2)."},
+     {"term":"Vertex","def":"The highest or lowest point of a parabola, where it turns around.","example":"y = (x − 3)² + 2 has vertex (3, 2). In (x − 3), h = 3, and the number added at the end is k = 2."},
      {"term":"Axis of Symmetry","def":"The vertical line through the vertex that splits the parabola into two mirror-image halves.","example":"For vertex (3, 2), the axis of symmetry is x = 3."},
    ],
    examples:[
@@ -1403,7 +1403,7 @@ export const TOPICS = [
    howTo:"Multiply: factor everything, then cancel any factor shared by the top and the bottom across BOTH fractions. Divide: flip the second fraction (multiply by its reciprocal), then continue like multiplication. Add or subtract: get a common denominator first, then combine the numerators only. Just like simplifying a single rational expression, finish by stating the restriction: any x-value that would make an ORIGINAL denominator equal 0 (or, when dividing, the fraction you flipped) stays off-limits.",
    terms:[
      {"term":"Reciprocal","def":"A fraction flipped upside down.","example":"The reciprocal of (x+1)/x is x/(x+1)."},
-     {"term":"Common Denominator","def":"A denominator shared by two fractions, needed before adding or subtracting them.","example":"To add 1/x and 1/3, the common denominator is 3x."},
+     {"term":"Common Denominator","def":"A denominator shared by two fractions, needed before adding or subtracting them.","example":"To add 1/x and 1/3, the common denominator is x · 3 = 3x."},
    ],
    examples:[
      {title:"Multiplying Rational Expressions", lines:[
@@ -1459,7 +1459,7 @@ export const TOPICS = [
    howTo:"Add or subtract: only combine LIKE radicals (the same number under the root), just like like terms. Multiply: multiply the numbers under the roots together, then simplify. Rationalize: if a radical is left in the denominator, multiply the top and bottom by that same radical to clear it out.",
    terms:[
      {"term":"Like Radicals","def":"Radicals with the exact same number underneath the root symbol.","example":"3√2 and 5√2 are like radicals; 3√2 and 3√5 are not."},
-     {"term":"Rationalizing the Denominator","def":"Removing a radical from the denominator of a fraction by multiplying top and bottom by that radical.","example":"1/√2 becomes √2/2 after rationalizing."},
+     {"term":"Rationalizing the Denominator","def":"Removing a radical from the denominator of a fraction by multiplying top and bottom by that radical.","example":"1/√2 becomes √2/2 after rationalizing: 1/√2 × √2/√2 = √2/2."},
    ],
    examples:[
      {title:"Adding Like Radicals", lines:[
@@ -1633,8 +1633,8 @@ export const TOPICS = [
    why:"Models how things like populations, investments, or radioactive material change by the same PERCENT every time period, instead of the same fixed amount.",
    howTo:"Use y = a(1 + r)ᵗ for growth, or y = a(1 − r)ᵗ for decay. Here a is the starting amount, r is the rate written as a decimal, and t is the number of time periods. Find the factor first (1 + r or 1 − r), work out the power, then multiply by the starting amount.",
    terms:[
-     {"term":"Growth Factor","def":"The number you repeatedly multiply by in exponential growth, equal to (1 + rate).","example":"5% growth has a growth factor of 1.05."},
-     {"term":"Decay Factor","def":"The number you repeatedly multiply by in exponential decay, equal to (1 − rate).","example":"5% decay has a decay factor of 0.95."},
+     {"term":"Growth Factor","def":"The number you repeatedly multiply by in exponential growth, equal to (1 + rate).","example":"5% growth has a growth factor of 1 + 0.05 = 1.05."},
+     {"term":"Decay Factor","def":"The number you repeatedly multiply by in exponential decay, equal to (1 − rate).","example":"5% decay has a decay factor of 1 − 0.05 = 0.95."},
    ],
    examples:[
      {title:"Exponential Growth", lines:[
@@ -1676,7 +1676,7 @@ export const TOPICS = [
    why:"The algebra behind any pattern that changes by the same fixed amount every step — like seating rows, savings with equal deposits, or a countdown.",
    howTo:"Find the common difference d by subtracting any term from the one right after it. Then use the formula aₙ = a₁ + (n − 1)d, where a₁ is the first term and n is the term number you want. Work the parentheses first, then multiply, then add.",
    terms:[
-     {"term":"Common Difference (d)","def":"The fixed amount added to get from one term to the next.","example":"In 3, 7, 11, 15…, the common difference is 4."},
+     {"term":"Common Difference (d)","def":"The fixed amount added to get from one term to the next.","example":"In 3, 7, 11, 15…, the common difference is 4, because 7 − 3 = 4."},
      {"term":"nth Term","def":"A formula that lets you find any term in the sequence directly, without listing every term before it.","example":"aₙ = a₁ + (n−1)d finds the nth term."},
    ],
    examples:[
@@ -1724,9 +1724,9 @@ export const TOPICS = [
    why:"Summarizes a whole list of numbers with just a few values, so you can describe and compare data sets quickly — the foundation for reading any chart or study.",
    howTo:"Mean: add every value, then divide by how many values there are. Median: sort the values from smallest to largest, then pick the middle one (if there is an even count, average the two middle ones). Mode: the value that shows up most often. Range: the largest value minus the smallest value.",
    terms:[
-     {"term":"Mean","def":"The average — the sum of all values divided by how many values there are.","example":"The mean of 2, 4, 6 is 12÷3 = 4."},
-     {"term":"Median","def":"The middle value when a data set is sorted from least to greatest.","example":"The median of 1, 3, 9 is 3."},
-     {"term":"Mode","def":"The value that appears most often in a data set.","example":"The mode of 2, 2, 5, 7 is 2."},
+     {"term":"Mean","def":"The average — the sum of all values divided by how many values there are.","example":"The mean of 2, 4, 6 is (2 + 4 + 6) ÷ 3 = 12 ÷ 3 = 4."},
+     {"term":"Median","def":"The middle value when a data set is sorted from least to greatest.","example":"The median of 1, 3, 9 is 3, because 3 is the middle value of the sorted list."},
+     {"term":"Mode","def":"The value that appears most often in a data set.","example":"The mode of 2, 2, 5, 7 is 2, because 2 appears twice and every other value appears once."},
    ],
    examples:[
      {title:"Mean & Median", lines:[
