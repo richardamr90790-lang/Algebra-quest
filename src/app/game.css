@@ -448,6 +448,7 @@ button.mark::after{
 .ex-red{color:var(--ex-red);font-weight:800}
 .ex-green{color:var(--ex-green);font-weight:800}
 /* the number added to / subtracted from both sides in a worked step: the sign is always written too, so colour is never the only cue */
+.ex-orange{color:var(--ex-orange);font-weight:800}
 .op-pos{color:var(--ex-green);font-weight:800}
 .op-neg{color:var(--ex-orange);font-weight:800}
 .ex-bul{margin:4px 0 4px;padding-left:22px;display:flex;flex-direction:column;gap:3px;font-weight:600}
