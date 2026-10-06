@@ -28,7 +28,7 @@ const seeded = {
     5: { box: 1, due: "2000-01-01", last: "2026-09-01", at: 1, ok: true },
   },
   activity: [
-    { at: NOW - 3600000, mode: "topic", title: "Functions & Function Notation", correct: 5, total: 6 },
+    { at: NOW - 60000, mode: "topic", title: "Functions & Function Notation", correct: 5, total: 6 },
     { at: NOW - 90000000, mode: "review", title: "Daily Review", correct: 3, total: 4 },
     { at: NOW - 200000000, mode: "boss", title: "Boss Battle — Easy", correct: 7, total: 10 },
   ],

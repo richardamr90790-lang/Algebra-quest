@@ -1195,6 +1195,23 @@ function confirmIconBtn(btn){
 
 /* ===================== RENDER ===================== */
 const app = document.getElementById("app");
+// Anything that lands in the page with Unicode superscripts (term definitions, the dictionary, titles) gets real superscripts too.
+function supifyNode(root){
+  if(!root || root.nodeType===3 && !root.parentNode) return;
+  const walker = document.createTreeWalker(root.nodeType===3 ? root.parentNode : root, NodeFilter.SHOW_TEXT);
+  const hits = [];
+  for(let n=walker.nextNode(); n; n=walker.nextNode()){
+    const tag = n.parentNode && n.parentNode.nodeName;
+    if(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺ⁿᵗ]/.test(n.nodeValue) && !/^(OPTION|SCRIPT|STYLE|TEXTAREA|SUP|TITLE)$/.test(tag) && !n.parentNode.closest("svg")) hits.push(n);
+  }
+  hits.forEach(n=>{
+    const span = document.createElement("span"); span.innerHTML = supify(escapeHtml(n.nodeValue));
+    n.replaceWith(...span.childNodes);
+  });
+}
+if(app && typeof MutationObserver!=="undefined"){
+  new MutationObserver(muts=>muts.forEach(m=>m.addedNodes.forEach(n=>{ if(n.nodeType===1 || n.nodeType===3) supifyNode(n); }))).observe(app, {childList:true, subtree:true});
+}
 
 /* ---- motion helpers: smooth, reduced-motion-aware tweens for numbers & bar widths.
    These only touch on-screen text/width — they never change state.xp, state.mastered,
@@ -1838,7 +1855,7 @@ function renderQuest(){
             if(correct){
               row += `<span class="blank-filled blank-correct">${escapeHtml(userVal)} ✓</span>`;
             }else{
-              row += `<span class="blank-filled blank-wrong">${escapeHtml(userVal)} ✗ → <span class="blank-correct-answer">${escapeHtml(expected)}</span></span>`;
+              row += `<span class="blank-filled blank-wrong">${supify(escapeHtml(userVal))} ✗ → <span class="blank-correct-answer">${supify(escapeHtml(expected))}</span></span>`;
             }
           }
         });
@@ -1850,7 +1867,7 @@ function renderQuest(){
       html += `<div class="you-typed">${L("You typed","Escribiste")}: <strong>${escapeHtml(session.autoResult.userText)}</strong></div>`;
       if(!session.autoResult.matched && session.diagnosis) html += `<div class="mistake-note">💬 ${session.diagnosis.message}</div>`;
     }
-    html += `<div class="answer-box"><span class="lbl">${L("Answer","Respuesta")}</span>${p.a}</div>`;
+    html += `<div class="answer-box"><span class="lbl">${L("Answer","Respuesta")}</span>${supify(p.a)}</div>`;
     if(session.autoResult.showHowTo && p.steps && p.steps.length){
       html += `
       <div class="howto-box">
@@ -1875,7 +1892,7 @@ function renderQuest(){
     const markedResult = session.results[session.pos];
     const flashCls = markedResult==="good" ? " box-flash-good" : markedResult==="bad" ? " box-flash-bad" : "";
     html += `<div class="reveal-enter">`;
-    html += `<div class="answer-box${flashCls}"><span class="lbl">${L("Answer","Respuesta")}</span>${p.a}</div>`;
+    html += `<div class="answer-box${flashCls}"><span class="lbl">${L("Answer","Respuesta")}</span>${supify(p.a)}</div>`;
     if(p.steps && p.steps.length){
       html += `
       <div class="howto-box">
@@ -1905,7 +1922,8 @@ function renderQuest(){
               ${opts.map(o=>`<option value="${escapeHtml(o)}"${o===draftVal?" selected":""}>${escapeHtml(o)}</option>`).join("")}
             </select>`;
           }else{
-            row += `<input type="text" class="blankInput" data-si="${si}" data-bi="${pi}" autocomplete="off" autocapitalize="off" spellcheck="false" value="${escapeHtml(draftVal)}">`;
+            const need = String((step.answers[pi]||"")).length, w = need<=1 ? 38 : need<=2 ? 48 : need<=4 ? 68 : 92; // a sign gets a small box, not a wide one
+            row += `<input type="text" class="blankInput" style="width:${w}px;text-align:${need<=2?"center":"left"}" data-si="${si}" data-bi="${pi}" autocomplete="off" autocapitalize="off" spellcheck="false" value="${escapeHtml(draftVal)}">`;
           }
         }
       });
@@ -2559,7 +2577,15 @@ function expandMarkup(step){
   }
   return step;
 }
+// Unicode superscripts (x², 10⁻⁵) are tiny in most fonts, so show them as real, larger superscripts.
+const SUP_CHARS = "⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺ⁿᵗ", SUP_PLAIN = "0123456789−+nt";
+function supify(html){
+  return String(html).replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺ⁿᵗ]+/g, run => `<sup class="exp">${Array.from(run).map(c=>SUP_PLAIN[SUP_CHARS.indexOf(c)]).join("")}</sup>`);
+}
 function renderStepText(step){
+  return supify(renderStepTextRaw(step));
+}
+function renderStepTextRaw(step){
   step = expandMarkup(step).replace(/###DP:([^:]*):([^:]*):([^#]*)###/g, (m, keep, movedCsv, suffix) => {
     const moved = movedCsv ? movedCsv.split(",") : [];
     return dpVisual(keep, moved, suffix);
