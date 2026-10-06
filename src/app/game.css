@@ -1241,3 +1241,6 @@ html[data-frame="galaxy"] .brand .mark,.frame-galaxy{box-shadow:0 0 0 3px #7c5cf
 .gtool-actions{justify-content:center}
 svg.graph-click{cursor:crosshair;touch-action:manipulation}
 #gtUseBtn strong{margin-left:4px}
+
+/* exponents: bigger and bolder than the Unicode superscript glyphs */
+sup.exp{font-size:.82em;font-weight:800;line-height:0;vertical-align:.42em;margin-left:1px}
